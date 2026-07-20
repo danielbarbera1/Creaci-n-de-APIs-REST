@@ -12,3 +12,5 @@ PUT > Update (Actualizar),
 DELETE > Delete (Borrar)
 
 Usar postman en vez del navegador
+
+hacer documentacion
