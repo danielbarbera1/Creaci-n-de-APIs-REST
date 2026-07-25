@@ -36,8 +36,8 @@ app.post('/api/productos', async (req, res) => {
 
         // Validar campos obligatorios
         if (!nombre_producto || !id_marca || !id_categoria) {
-            return res.status(400).json({ 
-                error: 'Los campos nombre_producto, id_marca y id_categoria son obligatorios' 
+            return res.status(400).json({
+                error: 'Los campos nombre_producto, id_marca y id_categoria son obligatorios'
             });
         }
 
@@ -584,7 +584,7 @@ app.get('/api/productos/categories/:categoria', async (req, res) => {
             },
             resumen: {
                 total_stock: products.reduce((sum, p) => sum + p.inventario.stock_actual, 0),
-                precio_promedio: products.length > 0 ? 
+                precio_promedio: products.length > 0 ?
                     (products.reduce((sum, p) => sum + p.inventario.precio_publico, 0) / products.length).toFixed(2) : 0,
                 marcas_disponibles: [...new Set(products.map(p => p.marca.nombre))].filter(Boolean)
             }
