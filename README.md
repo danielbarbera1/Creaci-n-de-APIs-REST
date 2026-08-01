@@ -3,6 +3,35 @@
 Un sistema fullstack de gestión de productos e inventario con una **API REST en Express.js** y una **interfaz visual en React + Vite + TailwindCSS**.
 
 ---
+## 🔧 Instalación y Ejecución
+
+### 1. Backend
+
+```bash
+cd backend
+npm install
+node index.js
+# Servidor en: http://localhost:3000
+```
+
+### 2. Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+# App en: http://localhost:5173
+```
+
+> ⚠️ Asegúrate de que Laragon (MySQL) esté corriendo antes de iniciar el backend.
+
+---
+
+## 📋 Tareas Pendientes
+
+Ver: [PENDIENTES.md](./PENDIENTES.md)
+
+---
 
 ## 🗂️ Estructura del Proyecto
 
@@ -451,30 +480,4 @@ VITE_API_URL=http://localhost:3000/api
 
 ---
 
-## 🔧 Instalación y Ejecución
 
-### 1. Backend
-
-```bash
-cd backend
-npm install
-node index.js
-# Servidor en: http://localhost:3000
-```
-
-### 2. Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-# App en: http://localhost:5173
-```
-
-> ⚠️ Asegúrate de que Laragon (MySQL) esté corriendo antes de iniciar el backend.
-
----
-
-## 📋 Tareas Pendientes
-
-Ver: [PENDIENTES.md](./PENDIENTES.md)
