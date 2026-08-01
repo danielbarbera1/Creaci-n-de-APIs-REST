@@ -1,4 +1,4 @@
-﻿# 📦 Sistema de Gestión de Inventario — API REST + Frontend React
+# 📦 Sistema de Gestión de Inventario — API REST + Frontend React
 
 Un sistema fullstack de gestión de productos e inventario con una **API REST en Express.js** y una **interfaz visual en React + Vite + TailwindCSS**.
 
@@ -45,15 +45,193 @@ API GET/
 - **Laragon** (o cualquier servidor MySQL local)
 - Base de datos MySQL llamada `express` con las tablas correspondientes
 
-### Tablas requeridas en la base de datos `express`:
+### Base de datos: `express`
+
+Motor: **MySQL 8.0** · Charset: `utf8mb4_unicode_ci`
+
+> El archivo `express.sql` en la raíz del proyecto contiene el dump completo listo para importar con phpMyAdmin o por CLI.
+
+```bash
+# Importar desde CLI
+mysql -u root -p express < express.sql
+```
+
+#### Diagrama de relaciones
+
+```
+categorias ──────────────────┐
+                             │ id_categoria
+marcas ──────────────────┐  │
+                          │  │
+unidades_medida ───────┐  │  │
+                       │  │  │
+                   productos (tabla central)
+                       │
+                   inventario
+                       │
+                   ubicaciones
+```
+
+#### Tablas
+
+| Tabla             | Filas de datos | Descripción                          |
+|-------------------|---------------|--------------------------------------|
+| `categorias`      | 7             | Categorías de productos con slug     |
+| `marcas`          | 25            | Marcas/fabricantes                   |
+| `unidades_medida` | 9             | Tipos de unidad (unid, kg, cj, etc.) |
+| `productos`       | 40            | Productos del inventario             |
+| `inventario`      | 40            | Precios, stock y ubicación           |
+| `ubicaciones`     | 31            | Pasillos y estantes del almacén      |
+
+---
+
+#### `categorias`
+```sql
+CREATE TABLE categorias (
+  id_categoria      INT           NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  nombre_categoria  VARCHAR(100)  NOT NULL UNIQUE,
+  slug              TEXT          NOT NULL,
+  descripcion_categoria TEXT,
+  created_at        TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+  updated_at        TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+| id | nombre_categoria          | slug                       |
+|----|---------------------------|----------------------------|
+| 1  | Herramientas Manuales     | herramientas-manuales      |
+| 2  | Herramientas Electricas   | herramientas-electricas    |
+| 3  | Fijaciones y Tornilleria  | fijaciones-y-tornilleria   |
+| 4  | Electricidad              | electricidad               |
+| 5  | Plomeria y Griferia       | plomeria-y-griferia        |
+| 6  | Pinturas y Acabados       | pinturas-y-acabados        |
+| 7  | Construccion y Seguridad  | construccion-y-seguridad   |
+
+---
+
+#### `marcas` (25 registros)
+```sql
+CREATE TABLE marcas (
+  id_marca      INT           NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  nombre_marca  VARCHAR(100)  NOT NULL UNIQUE,
+  slug          TEXT          NOT NULL,
+  created_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+  updated_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+Algunas marcas: Stanley, Truper, Bahco, Irwin, Bellota, DeWalt, Bosch, Makita, Black+Decker, Schneider, BTicino, Conduven, 3M, Pavco, Montana...
+
+---
+
+#### `unidades_medida`
+```sql
+CREATE TABLE unidades_medida (
+  id_unidad     INT           NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  nombre_unidad VARCHAR(50)   NOT NULL UNIQUE,
+  abreviatura   VARCHAR(10),
+  created_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+);
+```
+| id | nombre  | abreviatura |
+|----|---------|-------------|
+| 1  | Unidad  | unid        |
+| 2  | Caja    | cj          |
+| 3  | Paquete | pq          |
+| 4  | Kilo    | kg          |
+| 5  | Rollo   | rl          |
+| 6  | Tubo    | tb          |
+| 7  | Galon   | gal         |
+| 8  | Cuñete  | ñete        |
+| 9  | Par     | par         |
+
+---
+
+#### `productos` (40 registros)
+```sql
+CREATE TABLE productos (
+  id_producto           INT           NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  nombre_producto       VARCHAR(255)  NOT NULL,
+  slug                  TEXT          NOT NULL,
+  descripcion_detallada TEXT,
+  id_marca              INT           DEFAULT NULL,  -- FK → marcas
+  id_categoria          INT           DEFAULT NULL,  -- FK → categorias
+  id_unidad             INT           DEFAULT 1,     -- FK → unidades_medida
+  created_at            TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+  updated_at            TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+Algunos productos de ejemplo:
+
+| id | nombre_producto                  | categoria              | marca   |
+|----|----------------------------------|------------------------|---------|
+| 1  | Juego de Destornilladores Stanley | Herramientas Manuales  | Stanley |
+| 8  | Taladro Percutor DeWalt 20V      | Herramientas Electricas| DeWalt  |
+| 14 | Caja de Tornillos Drywall 1x1000 | Fijaciones y Tornilleria| Mejia  |
+| 20 | Cable Electrico THW #12 AWG      | Electricidad           | Elecon  |
+| 33 | Pintura Caucho Clase A Blanco    | Pinturas y Acabados    | Montana |
+
+---
+
+#### `inventario`
+```sql
+CREATE TABLE inventario (
+  id_inventario              INT            NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  id_producto                INT            NOT NULL UNIQUE, -- FK → productos (CASCADE)
+  id_ubicacion               INT            DEFAULT NULL,   -- FK → ubicaciones (SET NULL)
+  precio_publico             DECIMAL(12,2)  NOT NULL,
+  costo_proveedor            DECIMAL(12,2)  NOT NULL,
+  stock_actual               INT            NOT NULL DEFAULT 0,
+  stock_minimo               INT            DEFAULT 0,
+  stock_maximo               INT            DEFAULT 0,
+  fecha_ultima_actualizacion TIMESTAMP      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  created_at                 TIMESTAMP      DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+---
+
+#### `ubicaciones` (31 registros)
+```sql
+CREATE TABLE ubicaciones (
+  id_ubicacion       INT           NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  pasillo            VARCHAR(50),
+  estante            VARCHAR(50),
+  zona               VARCHAR(50),
+  ubicacion_completa VARCHAR(255)  NOT NULL UNIQUE,
+  created_at         TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+  updated_at         TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+Algunas ubicaciones: Pasillo A - Estante 1/2/3, Pasillo B - Vitrina 1/2, Pasillo C - Tambores, Zona Pinturas - Paleta 1, Patio Tubos, Patio Hierros...
+
+---
+
+#### Vistas SQL incluidas
+
+| Vista                        | Descripción                                          |
+|------------------------------|------------------------------------------------------|
+| `vista_productos_completos`  | JOIN completo: producto + marca + categoría + inventario + ubicación |
+| `vista_productos_por_categoria` | Resumen de cantidad y stock total por categoría    |
+| `vista_stock_bajo`           | Productos cuyo stock_actual <= stock_minimo          |
+
+---
+
+#### Restricciones (Foreign Keys)
 
 ```sql
-productos       (id_producto, nombre_producto, descripcion_detallada, id_marca, id_categoria, id_unidad, slug, created_at, updated_at)
-marcas          (id_marca, nombre_marca)
-categorias      (id_categoria, nombre_categoria, descripcion_categoria, slug)
-unidades_medida (id_unidad, nombre_unidad, abreviatura)
-inventario      (id_inventario, id_producto, id_ubicacion, precio_publico, costo_proveedor, stock_actual, stock_minimo, stock_maximo)
-ubicaciones     (id_ubicacion, pasillo, estante, zona, ubicacion_completa)
+-- inventario → productos (CASCADE delete/update)
+FOREIGN KEY (id_producto) REFERENCES productos(id_producto) ON DELETE CASCADE ON UPDATE CASCADE
+
+-- inventario → ubicaciones (SET NULL on delete)
+FOREIGN KEY (id_ubicacion) REFERENCES ubicaciones(id_ubicacion) ON DELETE SET NULL ON UPDATE CASCADE
+
+-- productos → marcas (SET NULL on delete)
+FOREIGN KEY (id_marca) REFERENCES marcas(id_marca) ON DELETE SET NULL ON UPDATE CASCADE
+
+-- productos → categorias (SET NULL on delete)
+FOREIGN KEY (id_categoria) REFERENCES categorias(id_categoria) ON DELETE SET NULL ON UPDATE CASCADE
+
+-- productos → unidades_medida (SET NULL on delete)
+FOREIGN KEY (id_unidad) REFERENCES unidades_medida(id_unidad) ON DELETE SET NULL ON UPDATE CASCADE
 ```
 
 ---
@@ -299,4 +477,4 @@ npm run dev
 
 ## 📋 Tareas Pendientes
 
-Ver: PENDIENTES.md
+Ver: [PENDIENTES.md](./PENDIENTES.md)
