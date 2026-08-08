@@ -10,11 +10,19 @@ app.use(cors()); // Habilitas cors para aceptar peticiones de cualquier origen
 app.use(express.json());
 
 // 1. Configuración de la base de datos (Valores por defecto de Laragon)
-const dbConfig = {
-    host: 'localhost',
-    user: 'root',
-    password: '123456', // Laragon viene sin contraseña por defecto
-    database: 'express' // ¡Cambiar por la BD real!
+// const dbConfig = {
+//     host: 'localhost',
+//     user: 'root',
+//     password: '123456', // Laragon viene sin contraseña por defecto
+//     database: 'express' // ¡Cambiar por la BD real!
+// };
+
+const connection = mysql.createConnection({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT || 3306,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,// ¡Cambiar por la BD real!
 };
 
 // 2. Crear una ruta (Endpoint GET) para exponer una API
