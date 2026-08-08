@@ -9,16 +9,8 @@ app.use(cors()); // Habilitas cors para aceptar peticiones de cualquier origen
 // Middleware para que Express entienda el formato JSON si enviamos datos por POST
 app.use(express.json());
 
-// 1. Configuración de la base de datos (Valores por defecto de Laragon)
-// const dbConfig = {
-//     host: 'localhost',
-//     user: 'root',
-//     password: '123456', // Laragon viene sin contraseña por defecto
-//     database: 'express' // ¡Cambiar por la BD real!
-// };
-
-// PRODUCCION
-const connection = mysql.createPool({
+// 1. Configuración de la base de datos
+const dbConfig = {
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT) || 3306,
     user: process.env.DB_USER,
@@ -30,11 +22,15 @@ const connection = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
-});
+};
+
+// Pool de conexiones para reutilizar en toda la aplicación
+const connection = mysql.createPool(dbConfig);
 // 2. Crear una ruta (Endpoint GET) para exponer una API
 
 // POST - Crear nuevo producto
 app.post('/api/productos', async (req, res) => {
+    let conn;
     try {
         const {
             nombre_producto,
@@ -55,13 +51,13 @@ app.post('/api/productos', async (req, res) => {
             });
         }
 
-        const connection = await mysql.createConnection(dbConfig);
+        conn = await connection.getConnection();
 
         // Iniciar transacción
-        await connection.beginTransaction();
+        await conn.beginTransaction();
 
         // 1. Insertar el producto
-        const [productResult] = await connection.execute(
+        const [productResult] = await conn.execute(
             `INSERT INTO productos (nombre_producto, descripcion_detallada, id_marca, id_categoria, id_unidad) 
              VALUES (?, ?, ?, ?, ?)`,
             [nombre_producto, descripcion_detallada, id_marca, id_categoria, id_unidad || 1]
@@ -71,7 +67,7 @@ app.post('/api/productos', async (req, res) => {
 
         // 2. Insertar en inventario
         if (precio_publico || costo_proveedor || stock_actual) {
-            await connection.execute(
+            await conn.execute(
                 `INSERT INTO inventario (id_producto, id_ubicacion, precio_publico, costo_proveedor, stock_actual) 
                  VALUES (?, ?, ?, ?, ?)`,
                 [id_producto, id_ubicacion || null, precio_publico || 0, costo_proveedor || 0, stock_actual || 0]
@@ -79,10 +75,10 @@ app.post('/api/productos', async (req, res) => {
         }
 
         // Confirmar transacción
-        await connection.commit();
+        await conn.commit();
 
         // Obtener el producto creado
-        const [newProduct] = await connection.execute(`
+        const [newProduct] = await conn.execute(`
             SELECT 
                 p.id_producto,
                 p.nombre_producto,
@@ -101,25 +97,27 @@ app.post('/api/productos', async (req, res) => {
             WHERE p.id_producto = ?
         `, [id_producto]);
 
-        await connection.end();
-
         res.status(201).json({
             message: 'Producto creado exitosamente',
             product: newProduct[0]
         });
 
     } catch (error) {
+        if (conn) await conn.rollback();
         console.error("Error:", error);
         if (error.code === 'ER_DUP_ENTRY') {
             res.status(400).json({ error: 'El producto ya existe' });
         } else {
             res.status(500).json({ error: 'Error al crear el producto', details: error.message });
         }
+    } finally {
+        if (conn) conn.release();
     }
 });
 
 // PUT - Actualizar producto completo
 app.put('/api/productos/:id', async (req, res) => {
+    let conn;
     try {
         const productId = req.params.id;
         const {
@@ -139,23 +137,22 @@ app.put('/api/productos/:id', async (req, res) => {
             return res.status(400).json({ error: 'ID de producto inválido' });
         }
 
-        const connection = await mysql.createConnection(dbConfig);
-        await connection.beginTransaction();
+        conn = await connection.getConnection();
+        await conn.beginTransaction();
 
         // Verificar si el producto existe
-        const [existingProduct] = await connection.execute(
+        const [existingProduct] = await conn.execute(
             'SELECT id_producto FROM productos WHERE id_producto = ?',
             [productId]
         );
 
         if (existingProduct.length === 0) {
-            await connection.rollback();
-            await connection.end();
+            await conn.rollback();
             return res.status(404).json({ error: 'Producto no encontrado' });
         }
 
         // Actualizar producto
-        await connection.execute(
+        await conn.execute(
             `UPDATE productos 
              SET nombre_producto = ?, descripcion_detallada = ?, id_marca = ?, id_categoria = ?, id_unidad = ?
              WHERE id_producto = ?`,
@@ -163,17 +160,17 @@ app.put('/api/productos/:id', async (req, res) => {
         );
 
         // Actualizar inventario
-        await connection.execute(
+        await conn.execute(
             `UPDATE inventario 
              SET precio_publico = ?, costo_proveedor = ?, stock_actual = ?, id_ubicacion = ?
              WHERE id_producto = ?`,
             [precio_publico, costo_proveedor, stock_actual, id_ubicacion, productId]
         );
 
-        await connection.commit();
+        await conn.commit();
 
         // Obtener producto actualizado
-        const [updatedProduct] = await connection.execute(`
+        const [updatedProduct] = await conn.execute(`
             SELECT 
                 p.id_producto,
                 p.nombre_producto,
@@ -192,21 +189,23 @@ app.put('/api/productos/:id', async (req, res) => {
             WHERE p.id_producto = ?
         `, [productId]);
 
-        await connection.end();
-
         res.json({
             message: 'Producto actualizado exitosamente',
             product: updatedProduct[0]
         });
 
     } catch (error) {
+        if (conn) await conn.rollback();
         console.error("Error:", error);
         res.status(500).json({ error: 'Error al actualizar el producto', details: error.message });
+    } finally {
+        if (conn) conn.release();
     }
 });
 
 // DELETE - Eliminar producto
 app.delete('/api/productos/:id', async (req, res) => {
+    let conn;
     try {
         const productId = req.params.id;
 
@@ -214,35 +213,33 @@ app.delete('/api/productos/:id', async (req, res) => {
             return res.status(400).json({ error: 'ID de producto inválido' });
         }
 
-        const connection = await mysql.createConnection(dbConfig);
-        await connection.beginTransaction();
+        conn = await connection.getConnection();
+        await conn.beginTransaction();
 
         // Verificar si el producto existe
-        const [product] = await connection.execute(
+        const [product] = await conn.execute(
             'SELECT nombre_producto FROM productos WHERE id_producto = ?',
             [productId]
         );
 
         if (product.length === 0) {
-            await connection.rollback();
-            await connection.end();
+            await conn.rollback();
             return res.status(404).json({ error: 'Producto no encontrado' });
         }
 
         // Eliminar inventario primero (por la relación)
-        await connection.execute(
+        await conn.execute(
             'DELETE FROM inventario WHERE id_producto = ?',
             [productId]
         );
 
         // Eliminar producto
-        await connection.execute(
+        await conn.execute(
             'DELETE FROM productos WHERE id_producto = ?',
             [productId]
         );
 
-        await connection.commit();
-        await connection.end();
+        await conn.commit();
 
         res.json({
             message: `Producto "${product[0].nombre_producto}" eliminado exitosamente`,
@@ -250,8 +247,11 @@ app.delete('/api/productos/:id', async (req, res) => {
         });
 
     } catch (error) {
+        if (conn) await conn.rollback();
         console.error("Error:", error);
         res.status(500).json({ error: 'Error al eliminar el producto', details: error.message });
+    } finally {
+        if (conn) conn.release();
     }
 });
 
@@ -366,7 +366,6 @@ app.get('/api/productos/:id', async (req, res) => {
 });
 
 app.get('/api/productos/categories/:categoria', async (req, res) => {
-    let connection;
     try {
         // El parámetro ahora es el slug
         const slug = req.params.categoria;
@@ -378,8 +377,6 @@ app.get('/api/productos/categories/:categoria', async (req, res) => {
                 error: 'El slug de la categoría es requerido'
             });
         }
-
-        connection = await mysql.createConnection(dbConfig);
 
         // PRIMERO: Obtener la categoría por su slug
         const [categoryResult] = await connection.execute(
@@ -398,7 +395,7 @@ app.get('/api/productos/categories/:categoria', async (req, res) => {
             if (categoryByName.length === 0) {
                 return res.status(404).json({
                     error: `La categoría con slug "${slug}" no existe`,
-                    availableCategories: await getAvailableCategories(connection)
+                    availableCategories: await getAvailableCategories()
                 });
             }
 
@@ -608,24 +605,16 @@ app.get('/api/productos/categories/:categoria', async (req, res) => {
             error: 'Hubo un problema al conectar con la base de datos',
             details: error.message
         });
-    } finally {
-        if (connection) {
-            await connection.end();
-        }
     }
 });
 
 
 // FUNCIÓN AUXILIAR PARA OBTENER CATEGORÍAS DISPONIBLES
-async function getAvailableCategories(existingConnection) {
+async function getAvailableCategories() {
     try {
-        // Reutilizar la conexión si ya existe, si no crear una nueva
-        const connection = existingConnection || await mysql.createConnection(dbConfig);
         const [rows] = await connection.execute(
             'SELECT nombre_categoria, slug FROM categorias ORDER BY nombre_categoria'
         );
-        // Solo cerrar si creamos una conexión nueva
-        if (!existingConnection) await connection.end();
         return rows.map(row => ({
             nombre: row.nombre_categoria,
             slug: row.slug
@@ -638,18 +627,8 @@ async function getAvailableCategories(existingConnection) {
 
 app.get('/api/productos', async (req, res) => {
     try {
-        // Abrimos la conexión
-        const connection = await mysql.createConnection(dbConfig);
-
-        // Ejecutamos la consulta SQL
-        const [rows] = await connection.execute('SELECT id_producto,nombre_producto,descripcion_detallada,id_marca,id_categoria,id_unidad FROM productos'); // Cambiar 'usuarios' por tu tabla
-
-        // Cerramos la conexión para no saturar la base de datos
-        await connection.end();
-
-        // Devolvemos los datos al cliente en formato JSON
+        const [rows] = await connection.execute('SELECT id_producto,nombre_producto,descripcion_detallada,id_marca,id_categoria,id_unidad FROM productos');
         res.json(rows);
-
     } catch (error) {
         console.error("Error en la base de datos:", error);
         res.status(500).json({ error: 'Hubo un problema al conectar con la base de datos' });
@@ -658,39 +637,19 @@ app.get('/api/productos', async (req, res) => {
 
 app.get('/api/marcas', async (req, res) => {
     try {
-        // Abrimos la conexión
-        const connection = await mysql.createConnection(dbConfig);
-
-        // Ejecutamos la consulta SQL
         const [rows] = await connection.execute('SELECT id_marca,nombre_marca FROM marcas');
-
-        // Cerramos la conexión
-        await connection.end();
-
-        // Devolvemos los datos al cliente en formato JSON
         res.json(rows);
     } catch (error) {
         console.error("Error en la base de datos:", error);
         res.status(500).json({ error: 'Hubo un problema al conectar con la base de datos' });
     }
-
 });
 
 
 app.get('/api/categorias', async (req, res) => {
     try {
-        // Abrimos la conexión
-        const connection = await mysql.createConnection(dbConfig);
-
-        // Ejecutamos la consulta SQL
-        const [rows] = await connection.execute('SELECT id_categoria,nombre_categoria,descripcion_categoria FROM categorias'); // Cambiar 'usuarios' por tu tabla
-
-        // Cerramos la conexión para no saturar la base de datos
-        await connection.end();
-
-        // Devolvemos los datos al cliente en formato JSON
+        const [rows] = await connection.execute('SELECT id_categoria,nombre_categoria,descripcion_categoria FROM categorias');
         res.json(rows);
-
     } catch (error) {
         console.error("Error en la base de datos:", error);
         res.status(500).json({ error: 'Hubo un problema al conectar con la base de datos' });
@@ -699,18 +658,8 @@ app.get('/api/categorias', async (req, res) => {
 
 app.get('/api/ubicaciones', async (req, res) => {
     try {
-        // Abrimos la conexión
-        const connection = await mysql.createConnection(dbConfig);
-
-        // Ejecutamos la consulta SQL
-        const [rows] = await connection.execute('SELECT id_ubicacion,pasillo,estante,ubicacion_completa FROM ubicaciones'); // Cambiar 'usuarios' por tu tabla
-
-        // Cerramos la conexión para no saturar la base de datos
-        await connection.end();
-
-        // Devolvemos los datos al cliente en formato JSON
+        const [rows] = await connection.execute('SELECT id_ubicacion,pasillo,estante,ubicacion_completa FROM ubicaciones');
         res.json(rows);
-
     } catch (error) {
         console.error("Error en la base de datos:", error);
         res.status(500).json({ error: 'Hubo un problema al conectar con la base de datos' });
