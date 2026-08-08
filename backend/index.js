@@ -19,17 +19,17 @@ app.use(express.json());
 
 // PRODUCCION
 const connection = mysql.createPool({
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT) || 3306,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  ssl: {
-    rejectUnauthorized: false
-  },
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+    host: process.env.DB_HOST,
+    port: Number(process.env.DB_PORT) || 3306,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    ssl: {
+        rejectUnauthorized: false
+    },
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
 });
 // 2. Crear una ruta (Endpoint GET) para exponer una API
 
@@ -255,6 +255,7 @@ app.delete('/api/productos/:id', async (req, res) => {
     }
 });
 
+//LEER - Lee podructos
 app.get('/api/productos/:id', async (req, res) => {
     try {
         const productId = req.params.id;
@@ -265,12 +266,18 @@ app.get('/api/productos/:id', async (req, res) => {
                 error: 'ID de producto inválido. Debe ser un número positivo.'
             });
         }
+        // Tu consulta a la BD...
+    } catch (error) {
+        console.error('ERROR_BD:', error); // <-- Añade esto
+        res.status(500).json({ error: "Hubo un problema al conectar con la base de datos" });
+    }
+});
 
-        // Abrimos la conexión
-        const connection = await mysql.createConnection(dbConfig);
+// Abrimos la conexión // practica 
+// const connection = await mysql.createConnection(dbConfig);
 
-        // Consulta SQL con todas las relaciones
-        const [rows] = await connection.execute(`
+// Consulta SQL con todas las relaciones
+const [rows] = await connection.execute(`
             SELECT 
                 p.id_producto,
                 p.nombre_producto,
@@ -302,72 +309,72 @@ app.get('/api/productos/:id', async (req, res) => {
             WHERE p.id_producto = ?
         `, [productId]);
 
-        // Cerramos la conexión
-        await connection.end();
+// Cerramos la conexión
+await connection.end();
 
-        // Verificar si el producto existe
-        if (rows.length === 0) {
-            return res.status(404).json({
-                error: `Producto con ID ${productId} no encontrado`
-            });
-        }
+// Verificar si el producto existe
+if (rows.length === 0) {
+    return res.status(404).json({
+        error: `Producto con ID ${productId} no encontrado`
+    });
+}
 
-        // Tomamos el primer resultado (debería ser único)
-        const product = rows[0];
+// Tomamos el primer resultado (debería ser único)
+const product = rows[0];
 
-        // Estructurar la respuesta con formato similar a DummyJSON
-        const response = {
-            // Información del producto
-            id: product.id_producto,
-            nombre: product.nombre_producto,
-            descripcion: product.descripcion_detallada,
+// Estructurar la respuesta con formato similar a DummyJSON
+const response = {
+    // Información del producto
+    id: product.id_producto,
+    nombre: product.nombre_producto,
+    descripcion: product.descripcion_detallada,
 
-            // Relaciones
-            marca: {
-                id: product.id_marca,
-                nombre: product.marca
-            },
-            categoria: {
-                id: product.id_categoria,
-                nombre: product.categoria
-            },
-            unidad: {
-                id: product.id_unidad,
-                nombre: product.unidad_medida,
-                abreviatura: product.unidad_abreviatura
-            },
+    // Relaciones
+    marca: {
+        id: product.id_marca,
+        nombre: product.marca
+    },
+    categoria: {
+        id: product.id_categoria,
+        nombre: product.categoria
+    },
+    unidad: {
+        id: product.id_unidad,
+        nombre: product.unidad_medida,
+        abreviatura: product.unidad_abreviatura
+    },
 
-            // Información de inventario
-            inventario: {
-                id: product.id_inventario,
-                precio: parseFloat(product.precio_publico),
-                costo: parseFloat(product.costo_proveedor),
-                stock: product.stock_actual,
-                min_stock: product.stock_minimo || 0,
-                max_stock: product.stock_maximo || 0,
-                estado: product.stock_actual > 0 ? 'In Stock' : 'Out of Stock'
-            },
+    // Información de inventario
+    inventario: {
+        id: product.id_inventario,
+        precio: parseFloat(product.precio_publico),
+        costo: parseFloat(product.costo_proveedor),
+        stock: product.stock_actual,
+        min_stock: product.stock_minimo || 0,
+        max_stock: product.stock_maximo || 0,
+        estado: product.stock_actual > 0 ? 'In Stock' : 'Out of Stock'
+    },
 
-            // Ubicación
-            ubicacion: {
-                id: product.id_ubicacion,
-                fullLocation: product.ubicacion_completa,
-                aisle: product.pasillo,
-                shelf: product.estante,
-                zone: product.zona
-            }
-        };
+    // Ubicación
+    ubicacion: {
+        id: product.id_ubicacion,
+        fullLocation: product.ubicacion_completa,
+        aisle: product.pasillo,
+        shelf: product.estante,
+        zone: product.zona
+    }
+};
 
-        // Devolvemos los datos al cliente en formato JSON
-        res.json(response);
+// Devolvemos los datos al cliente en formato JSON
+res.json(response);
 
     } catch (error) {
-        console.error("Error en la base de datos:", error);
-        res.status(500).json({
-            error: 'Hubo un problema al conectar con la base de datos',
-            details: error.message
-        });
-    }
+    console.error("Error en la base de datos:", error);
+    res.status(500).json({
+        error: 'Hubo un problema al conectar con la base de datos',
+        details: error.message
+    });
+}
 });
 
 app.get('/api/productos/categories/:categoria', async (req, res) => {
