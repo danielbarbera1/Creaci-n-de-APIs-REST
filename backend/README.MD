@@ -1,4 +1,4 @@
-﻿# ⚙️ Backend — API REST con Express.js + MySQL
+# ⚙️ Backend — API REST con Express.js + MySQL
 
 Servidor REST construido con **Express.js 5** y **MySQL2** que expone los endpoints para gestionar el inventario de productos de una ferretería.
 
@@ -31,18 +31,27 @@ backend/
 
 ### Conexión a la Base de Datos
 
-En `index.js` (línea 13) se define el objeto `dbConfig`:
+En `index.js` la base de datos se configura mediante un **Pool de Conexiones** (`mysql.createPool`) utilizando variables de entorno para soporte en desarrollo local y producción (por ejemplo, en Vercel con SSL):
 
 ```js
 const dbConfig = {
-    host: 'localhost',
-    user: 'root',
-    password: '123456',   // Contraseña de Laragon
-    database: 'express'   // Nombre de la BD
+    host: process.env.DB_HOST,
+    port: Number(process.env.DB_PORT) || 3306,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    ssl: {
+        rejectUnauthorized: false
+    },
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
 };
+
+const connection = mysql.createPool(dbConfig);
 ```
 
-> ⚠️ **PENDIENTE**: Mover estas credenciales a un archivo `.env` para no exponerlas en el código.
+> 🔒 **Variables de entorno:** En producción, las credenciales se leen automáticamente de `process.env`. Para desarrollo local puedes definir estas variables en tu entorno o archivo `.env`.
 
 ### Middlewares activos
 
@@ -418,9 +427,9 @@ GET http://localhost:3000/api/ubicaciones
 
 ## 🔁 Función Auxiliar Interna
 
-### `getAvailableCategories(connection)`
+### `getAvailableCategories()`
 
-Función interna (no es un endpoint) usada por `GET /api/productos/categories/:slug` cuando el slug no existe. Retorna un arreglo de categorías disponibles para informar al cliente qué slugs puede usar.
+Función interna (no es un endpoint) usada por `GET /api/productos/categories/:slug` cuando el slug no existe. Retorna un arreglo de categorías disponibles para informar al cliente qué slugs puede usar reutilizando el pool de conexiones.
 
 ```js
 // Retorna: [{ nombre: "Herramientas Manuales", slug: "herramientas-manuales" }, ...]
@@ -428,23 +437,30 @@ Función interna (no es un endpoint) usada por `GET /api/productos/categories/:s
 
 ---
 
-## 🌐 Puerto del Servidor
+## 🌐 Puerto del Servidor y Despliegue (Vercel)
+
+El servidor se inicializa condicionalmente en desarrollo y exporta la app Express para Serverless Functions en plataformas como Vercel:
 
 ```js
-const PORT = 3000;
-app.listen(PORT, () => {
-    console.log(`Servidor Express escuchando en http://localhost:${PORT}`);
-});
+const PORT = process.env.PORT || 3000;
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`Servidor Express escuchando en http://localhost:${PORT}`);
+    });
+}
+
+module.exports = app;
 ```
 
 ---
 
 ## ⚠️ Notas Importantes
 
-- **Sin pool de conexiones:** Cada request abre y cierra una conexión individual. Funciona para desarrollo pero en producción se debería usar `mysql2.createPool()`.
-- **CORS abierto:** `app.use(cors())` acepta cualquier origen. En producción se debe restringir a dominios específicos.
-- **Credenciales hardcodeadas:** La contraseña de la BD está directamente en el código. Mover a `.env` es una tarea pendiente.
-- **Transacciones en escritura:** Los endpoints `POST`, `PUT` y `DELETE` usan `BEGIN TRANSACTION` / `COMMIT` / `ROLLBACK` para garantizar consistencia.
+- **Pool de Conexiones Reutilizable:** Implementado con `mysql2.createPool()`. Evita la saturación de conexiones en la base de datos tanto en desarrollo como en producción.
+- **Variables de Entorno:** Credenciales configurables dinámicamente vía `process.env` (`DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`).
+- **Soporte SSL:** Habilitado con `rejectUnauthorized: false` para bases de datos hospedadas en la nube (Aiven, PlanetScale, TiDB, Railway, etc.).
+- **Transacciones en escritura:** Los endpoints `POST`, `PUT` y `DELETE` utilizan transacciones con `getConnection()`, `beginTransaction()`, `commit()`, `rollback()` y `release()` para garantizan consistencia atómica.
+- **CORS abierto:** `app.use(cors())` acepta cualquier origen para facilitar pruebas.
 
 ---
 
@@ -454,7 +470,5 @@ Ver: [PENDIENTES.md](../PENDIENTES.md)
 
 Los puntos clave son:
 - Segmentar rutas en archivos separados (`routes/`)
-- Mover credenciales a `.env`
-- Usar pool de conexiones
 - Agregar CRUD completo para marcas, categorías y ubicaciones
-- Agregar endpoint de búsqueda global y PATCH
+- Agregar endpoint de búsqueda global y actualización parcial (`PATCH`)

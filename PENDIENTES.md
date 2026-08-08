@@ -1,4 +1,4 @@
-﻿# 📋 Tareas Pendientes — API GET / Sistema de Inventario
+# 📋 Tareas Pendientes — API GET / Sistema de Inventario
 
 Este archivo registra las funcionalidades y mejoras que faltan para completar el proyecto.
 
@@ -25,8 +25,8 @@ Este archivo registra las funcionalidades y mejoras que faltan para completar el
   - [ ] `DELETE /api/ubicaciones/:id` — Eliminar ubicación
 
 ### Seguridad & Calidad
-- [ ] **Mover credenciales de DB a variables de entorno** (`.env`): actualmente la contraseña y nombre de la BD están hardcodeadas en `index.js`
-- [ ] **Usar un pool de conexiones** en lugar de `mysql.createConnection()` por petición — mejora el rendimiento y evita saturar la BD
+- [x] **Mover credenciales de DB a variables de entorno** (`process.env` / `.env`): configurado con `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT` y soporte SSL.
+- [x] **Usar un pool de conexiones** (`mysql2.createPool()`): implementado para reutilizar conexiones y evitar agotar recursos en desarrollo y producción.
 - [ ] **Validación de entrada con una librería** (ej: Zod o Joi) en lugar de validaciones manuales con `if`
 - [ ] **Agregar middleware de manejo de errores** centralizado (`app.use((err, req, res, next) => ...)`)
 - [ ] **Agregar script `start` en `package.json`** del backend y usar `nodemon` para desarrollo automático
@@ -69,8 +69,11 @@ Este archivo registra las funcionalidades y mejoras que faltan para completar el
 ## ✅ Completado
 
 - [x] CRUD completo de productos: POST, GET (todos), GET (por ID), GET (por categoría), PUT, DELETE
+- [x] Implementación de Pool de conexiones con `mysql2.createPool()`
+- [x] Configuración por variables de entorno (`process.env.DB_*`) y soporte SSL en producción (Vercel)
+- [x] Exportación Serverless `module.exports = app` para despliegues en Vercel
 - [x] Filtros y paginación en el endpoint de categorías
 - [x] URLs con slugs (en lugar de nombres con espacios y acentos)
-- [x] Transacciones en operaciones que tocan múltiples tablas (POST y DELETE)
+- [x] Transacciones en operaciones que tocan múltiples tablas (POST, PUT y DELETE)
 - [x] Frontend conectado a la API con filtro por categoría funcional
 - [x] Variables de entorno en el frontend (`.env` con `VITE_API_URL`)
