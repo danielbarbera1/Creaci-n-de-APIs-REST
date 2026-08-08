@@ -709,9 +709,14 @@ app.get('/api/ubicaciones', async (req, res) => {
 });
 
 
-// 3. Levantar el servidor
-const PORT = 3000;
-app.listen(PORT, () => {
-    console.log(`Servidor Express escuchando en http://localhost:${PORT}`);
-    console.log(`Prueba la API en http://localhost:${PORT}/api/productos`);
-});
+// 3. Levantar el servidor (solo en desarrollo local)
+const PORT = process.env.PORT || 3000;
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`Servidor Express escuchando en http://localhost:${PORT}`);
+        console.log(`Prueba la API en http://localhost:${PORT}/api/productos`);
+    });
+}
+
+// 4. Exportar la app para Vercel Serverless
+module.exports = app;
