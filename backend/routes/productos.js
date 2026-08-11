@@ -8,6 +8,20 @@ const {
   patchProductSchema
 } = require('../schemas/productos.schema');
 
+
+
+// Función auxiliar para generar slug
+function createSlug(str) {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove accents
+    .replace(/[^a-z0-9 -]/g, "") // remove invalid chars
+    .replace(/\s+/g, "-") // collapse whitespace
+    .replace(/-+/g, "-"); // collapse dashes
+}
+
 // Función auxiliar para obtener categorías disponibles
 async function getAvailableCategories() {
   try {
@@ -464,18 +478,20 @@ router.post('/', validate(createProductSchema), async (req, res, next) => {
     conn = await pool.getConnection();
     await conn.beginTransaction();
 
+    const slug = createSlug(nombre_producto);
+
     const [productResult] = await conn.execute(
-      `INSERT INTO productos (nombre_producto, descripcion_detallada, id_marca, id_categoria, id_unidad) 
-       VALUES (?, ?, ?, ?, ?)`,
-      [nombre_producto, descripcion_detallada || null, id_marca, id_categoria, id_unidad || 1]
+      `INSERT INTO productos (nombre_producto, descripcion_detallada, id_marca, id_categoria, id_unidad, slug) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [nombre_producto, descripcion_detallada || null, id_marca, id_categoria, id_unidad || 1, slug]
     );
 
     const id_producto = productResult.insertId;
 
     await conn.execute(
-      `INSERT INTO inventario (id_producto, id_ubicacion, precio_publico, costo_proveedor, stock_actual) 
-       VALUES (?, ?, ?, ?, ?)`,
-      [id_producto, id_ubicacion || null, precio_publico || 0, costo_proveedor || 0, stock_actual || 0]
+      `INSERT INTO inventario (id_producto, id_ubicacion, precio_publico, costo_proveedor, stock_actual, slug) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [id_producto, id_ubicacion || null, precio_publico || 0, costo_proveedor || 0, stock_actual || 0, slug]
     );
 
     await conn.commit();
@@ -546,18 +562,20 @@ router.put('/:id', validate(updateProductSchema), async (req, res, next) => {
       return res.status(404).json({ error: 'Producto no encontrado' });
     }
 
+    const slug = createSlug(nombre_producto);
+
     await conn.execute(
       `UPDATE productos 
-       SET nombre_producto = ?, descripcion_detallada = ?, id_marca = ?, id_categoria = ?, id_unidad = ?
+       SET nombre_producto = ?, descripcion_detallada = ?, id_marca = ?, id_categoria = ?, id_unidad = ?, slug = ?
        WHERE id_producto = ?`,
-      [nombre_producto, descripcion_detallada || null, id_marca, id_categoria, id_unidad || 1, productId]
+      [nombre_producto, descripcion_detallada || null, id_marca, id_categoria, id_unidad || 1, slug, productId]
     );
 
     await conn.execute(
       `UPDATE inventario 
-       SET precio_publico = ?, costo_proveedor = ?, stock_actual = ?, id_ubicacion = ?
+       SET precio_publico = ?, costo_proveedor = ?, stock_actual = ?, id_ubicacion = ?, slug = ?
        WHERE id_producto = ?`,
-      [precio_publico || 0, costo_proveedor || 0, stock_actual || 0, id_ubicacion || null, productId]
+      [precio_publico || 0, costo_proveedor || 0, stock_actual || 0, id_ubicacion || null, slug, productId]
     );
 
     await conn.commit();
