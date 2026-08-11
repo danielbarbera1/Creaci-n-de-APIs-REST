@@ -1,105 +1,467 @@
-import { useState, useEffect } from 'react'
-import './App.css'
+import { useState, useEffect, useCallback } from 'react';
+import Header from './components/Header';
+import CategorySidebar from './components/CategorySidebar';
+import FilterBar from './components/FilterBar';
+import ProductCard from './components/ProductCard';
+import ProductDetailModal from './components/ProductDetailModal';
+import ProductFormModal from './components/ProductFormModal';
+import ConfirmModal from './components/ConfirmModal';
+import Pagination from './components/Pagination';
+import Toast from './components/Toast';
+import { Loader2, AlertCircle, PackageX, Plus, RefreshCw } from 'lucide-react';
 
 function App() {
+  const api = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-  const api = import.meta.env.VITE_API_URL
+  // Core Data States
+  const [categorias, setCategorias] = useState([]);
+  const [marcas, setMarcas] = useState([]);
+  const [productos, setProductos] = useState([]);
+  
+  // Active Filter / Navigation States
+  const [categoriaActiva, setCategoriaActiva] = useState(null); // null = todas
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedBrand, setSelectedBrand] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [sortBy, setSortBy] = useState('nombre_producto');
+  const [sortOrder, setSortOrder] = useState('ASC');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProductsCount, setTotalProductsCount] = useState(0);
 
-  // 1. Guardaremos las categorías aquí. Empieza como un arreglo vacío.
-  const [categorias, setCategorias] = useState([])
-  const [productos, setProductos] = useState([]) // Agregamos el estado para los productos
+  // UI / Modal / Notification States
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  // Modals
+  const [detailProductId, setDetailProductId] = useState(null);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [deleteProductInfo, setDeleteProductInfo] = useState(null); // { id, name }
+  const [deleting, setDeleting] = useState(false);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+  };
+
+  // 1. Cargar lista de categorías y marcas al iniciar
+  useEffect(() => {
+    // Categorías
+    fetch(`${api}/categorias`)
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setCategorias(data.map(c => ({
+            ...c,
+            slug: c.slug || c.nombre_categoria.toLowerCase().replace(/\s+/g, '-')
+          })));
+        } else {
+          // Fallback a endpoint de categories si el backend responde con availableCategories
+          fetch(`${api}/productos/categories/slug`)
+            .then(r => r.json())
+            .then(d => {
+              if (d.availableCategories) setCategorias(d.availableCategories);
+            })
+            .catch(() => {});
+        }
+      })
+      .catch(err => {
+        console.error('Error al cargar categorías:', err);
+      });
+
+    // Marcas
+    fetch(`${api}/marcas`)
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        if (Array.isArray(data)) setMarcas(data);
+      })
+      .catch(err => {
+        console.error('Error al cargar marcas:', err);
+      });
+  }, [api]);
+
+  // 2. Función principal para fetch de productos (por categoría o global)
+  const fetchProductos = useCallback(() => {
+    setLoading(true);
+    setError(null);
+
+    let url = '';
+
+    if (categoriaActiva) {
+      // Usamos el endpoint paginado y filtrado de categorías
+      const queryParams = new URLSearchParams();
+      queryParams.append('page', page.toString());
+      queryParams.append('limit', '9');
+      if (selectedBrand) queryParams.append('brand', selectedBrand);
+      if (minPrice) queryParams.append('minPrice', minPrice);
+      if (maxPrice) queryParams.append('maxPrice', maxPrice);
+      if (searchQuery) queryParams.append('search', searchQuery);
+      if (sortBy) queryParams.append('sortBy', sortBy);
+      if (sortOrder) queryParams.append('sortOrder', sortOrder);
+
+      url = `${api}/productos/categories/${categoriaActiva}?${queryParams.toString()}`;
+    } else {
+      // Todas las categorías
+      url = `${api}/productos`;
+    }
+
+    fetch(url)
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`Error ${res.status}: No se pudo obtener la lista de productos.`);
+        }
+        return res.json();
+      })
+      .then(data => {
+        if (categoriaActiva) {
+          // Formato retornado por /api/productos/categories/:slug
+          setProductos(data.products || []);
+          setTotalPages(data.totalPages || 1);
+          setTotalProductsCount(data.total || 0);
+        } else {
+          // Formato retornado por /api/productos (arreglo simple)
+          const allProducts = Array.isArray(data) ? data : [];
+          setProductos(allProducts);
+          setTotalPages(1);
+          setTotalProductsCount(allProducts.length);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Error en fetchProductos:', err);
+        setError('No se pudo conectar con la API de backend. Por favor verifica que el servidor esté activo.');
+        setLoading(false);
+      });
+  }, [api, categoriaActiva, page, selectedBrand, minPrice, maxPrice, searchQuery, sortBy, sortOrder]);
 
   useEffect(() => {
-    // 2. Llamamos exactamente a la ruta
-    fetch(`${api}/productos/categories/slug`)
-      .then(response => response.json())
-      .then(data => {
-        // 3. Cuando le pedimos "slug", la API nos responde que no existe
-        // pero nos devuelve un arreglo llamado "availableCategories"
-        // con todas las categorías disponibles. ¡Eso es lo que guardamos!
+    fetchProductos();
+  }, [fetchProductos]);
 
-        setCategorias(data.availableCategories)
-        console.log(data.availableCategories)
+  // Reset de página al cambiar filtros o categorías
+  const handleSelectCategoria = (slug) => {
+    setCategoriaActiva(slug);
+    setPage(1);
+  };
 
-      })
-      .catch(error => {
-        console.error('Error al consumir la API:', error)
-      })
-  }, [])
+  const handleResetFilters = () => {
+    setSelectedBrand('');
+    setMinPrice('');
+    setMaxPrice('');
+    setSortBy('nombre_producto');
+    setSortOrder('ASC');
+    setSearchQuery('');
+    setPage(1);
+  };
 
-  useEffect(() => {
-    // 2. Llamamos a la ruta general de productos para obtenerlos todos
-    fetch(`${api}/productos`)
-      .then(response => response.json())
-      .then(data => {
-        // La API /api/productos devuelve directamente el arreglo de productos
-        setProductos(data)
-      })
-      .catch(error => {
-        console.error('Error al consumir la API de productos:', error)
-      })
-  }, [])
+  // Filtrado y ordenamiento en cliente si no hay categoría seleccionada (para /api/productos general)
+  const productosFiltrados = useCallback(() => {
+    if (categoriaActiva) return productos; // Ya viene filtrado de la API
 
-  const handleCategoriaClick = (slug) => {
-    // 1. Hacemos fetch a la nueva ruta que devuelve los productos de una categoría
-    fetch(`${api}/productos/categories/${slug}`)
-      .then(response => response.json())
-      .then(data => {
-        // 2. La API devuelve un objeto con la propiedad 'products'
-        setProductos(data.products || [])
-      })
-      .catch(error => {
-        console.error('Error al consumir la API de productos:', error)
-      })
-  }
+    let list = [...productos];
+
+    // Buscador
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(p =>
+        (p.nombre_producto || p.nombre || '').toLowerCase().includes(q) ||
+        (p.descripcion_detallada || p.descripcion || '').toLowerCase().includes(q)
+      );
+    }
+
+    // Marca
+    if (selectedBrand) {
+      list = list.filter(p => {
+        const m = typeof p.marca === 'object' ? p.marca?.nombre : (p.marca || p.nombre_marca);
+        return m === selectedBrand;
+      });
+    }
+
+    // Precios
+    if (minPrice) {
+      const min = parseFloat(minPrice);
+      list = list.filter(p => {
+        const precio = p.inventario?.precio_publico ?? p.precio_publico ?? p.precio ?? 0;
+        return parseFloat(precio) >= min;
+      });
+    }
+
+    if (maxPrice) {
+      const max = parseFloat(maxPrice);
+      list = list.filter(p => {
+        const precio = p.inventario?.precio_publico ?? p.precio_publico ?? p.precio ?? 0;
+        return parseFloat(precio) <= max;
+      });
+    }
+
+    // Ordenamiento
+    list.sort((a, b) => {
+      let valA, valB;
+      if (sortBy === 'precio_publico') {
+        valA = parseFloat(a.inventario?.precio_publico ?? a.precio_publico ?? 0);
+        valB = parseFloat(b.inventario?.precio_publico ?? b.precio_publico ?? 0);
+      } else if (sortBy === 'stock_actual') {
+        valA = parseInt(a.inventario?.stock_actual ?? a.stock_actual ?? 0, 10);
+        valB = parseInt(b.inventario?.stock_actual ?? b.stock_actual ?? 0, 10);
+      } else {
+        valA = (a.nombre_producto || a.nombre || '').toLowerCase();
+        valB = (b.nombre_producto || b.nombre || '').toLowerCase();
+      }
+
+      if (valA < valB) return sortOrder === 'ASC' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'ASC' ? 1 : -1;
+      return 0;
+    });
+
+    return list;
+  }, [categoriaActiva, productos, searchQuery, selectedBrand, minPrice, maxPrice, sortBy, sortOrder]);
+
+  const listaFinalProductos = productosFiltrados();
+
+  // Handlers para Crear/Editar Producto (POST / PUT)
+  const handleOpenCreateModal = () => {
+    setEditingProduct(null);
+    setIsFormModalOpen(true);
+  };
+
+  const handleOpenEditModal = (producto) => {
+    setEditingProduct(producto);
+    setIsFormModalOpen(true);
+  };
+
+  const handleSaveProduct = async (payload, idToUpdate) => {
+    const isEdit = Boolean(idToUpdate);
+    const url = isEdit ? `${api}/productos/${idToUpdate}` : `${api}/productos`;
+    const method = isEdit ? 'PUT' : 'POST';
+
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || `Error ${res.status} al guardar producto.`);
+    }
+
+    showToast(
+      isEdit ? `Producto "${payload.nombre_producto}" actualizado correctamente.` : `Producto "${payload.nombre_producto}" creado exitosamente.`
+    );
+
+    // Recargar lista de productos y catálogos
+    fetchProductos();
+  };
+
+  // Handlers para Eliminar Producto (DELETE)
+  const handleOpenDeleteModal = (id, name) => {
+    setDeleteProductInfo({ id, name });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteProductInfo) return;
+    setDeleting(true);
+
+    try {
+      const res = await fetch(`${api}/productos/${deleteProductInfo.id}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al eliminar el producto.');
+      }
+
+      showToast(`Producto "${deleteProductInfo.name}" eliminado correctamente.`, 'success');
+      setDeleteProductInfo(null);
+      setDeleting(false);
+      fetchProductos();
+    } catch (err) {
+      console.error('Error al eliminar:', err);
+      showToast(err.message || 'Error al eliminar producto.', 'error');
+      setDeleting(false);
+    }
+  };
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-8 text-gray-800 text-center">APIs</h1>
+    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+      
+      {/* Toast Notification */}
+      <Toast toast={toast} onClose={() => setToast(null)} />
 
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* Contenedor de Categorías (Izquierda) */}
-        <div className="w-full md:w-1/4 flex flex-col gap-4 border-r border-gray-200 pr-4">
-          <h2 className="text-xl font-semibold mb-2 text-gray-700 border-b pb-2">Categorías</h2>
-          {categorias.map((categoria) => (
-            <button key={categoria.slug} onClick={() => handleCategoriaClick(categoria.slug)} className="w-full  text-gray-800 bg-gray-100 hover:bg-blue-600 hover:text-white transition-colors duration-300 cursor-pointer py-3 px-4 rounded text-left shadow-sm">
-              <span className="text-lg text-center flex justify-center items-center font-semibold capitalize">{categoria.slug}</span>
-            </button>
-          ))}
-        </div>
+      {/* Header */}
+      <Header
+        searchQuery={searchQuery}
+        onSearchChange={(val) => { setSearchQuery(val); setPage(1); }}
+        onOpenCreateModal={handleOpenCreateModal}
+        totalProducts={totalProductsCount}
+        onRefresh={fetchProductos}
+        loading={loading}
+      />
 
-        {/* Contenedor de Productos (Derecha) */}
-        <div className="w-full md:w-3/4 md:pl-4">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700 border-b pb-2">Productos</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {productos.length === 0 ? (
-              <p className="text-gray-400 italic text-sm col-span-full">No hay productos cargados.</p>
-            ) : (
-              productos.map((producto) => {
-                // Soportamos ambos formatos (el de /api/productos y el de /api/productos/categories/:slug)
-                const id = producto.id || producto.id_producto;
-                const nombre = producto.nombre || producto.nombre_producto;
-                const stock = producto.inventario ? producto.inventario.stock_actual : (producto.stock_actual || 0);
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8">
+        <div className="flex flex-col lg:flex-row gap-8">
 
-                return (
-                  <div key={id} className="border border-gray-300 rounded p-4 bg-white hover:shadow-md hover:border-blue-500 transition-all flex flex-col justify-between">
-                    <h4 className="font-semibold text-gray-800 mb-2">{nombre}</h4>
-                    <div>
-                      {stock > 0 ? (
-                        <span className="inline-block px-2 py-1 bg-green-100 text-xs text-green-700 rounded-full font-medium">En Stock</span>
-                      ) : (
-                        <span className="inline-block px-2 py-1 bg-red-100 text-xs text-red-700 rounded-full font-medium">Sin Stock</span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })
+          {/* Menú Lateral de Categorías */}
+          <CategorySidebar
+            categorias={categorias}
+            categoriaActiva={categoriaActiva}
+            onSelectCategoria={handleSelectCategoria}
+            totalProductosCount={totalProductsCount}
+          />
+
+          {/* Panel Principal */}
+          <section className="flex-1 min-w-0">
+            
+            {/* Header del Panel */}
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div>
+                <h2 className="text-2xl font-extrabold text-white tracking-tight capitalize m-0">
+                  {categoriaActiva ? `Categoría: ${categoriaActiva}` : 'Catálogo Completo'}
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Mostrando {listaFinalProductos.length} producto(s)
+                  {categoriaActiva ? ` en esta categoría` : ''}
+                </p>
+              </div>
+            </div>
+
+            {/* Filtros Visuales y Ordenamiento */}
+            <FilterBar
+              marcas={marcas}
+              selectedBrand={selectedBrand}
+              onBrandChange={(val) => { setSelectedBrand(val); setPage(1); }}
+              minPrice={minPrice}
+              onMinPriceChange={(val) => { setMinPrice(val); setPage(1); }}
+              maxPrice={maxPrice}
+              onMaxPriceChange={(val) => { setMaxPrice(val); setPage(1); }}
+              sortBy={sortBy}
+              onSortByChange={(val) => setSortBy(val)}
+              sortOrder={sortOrder}
+              onSortOrderChange={(val) => setSortOrder(val)}
+              onResetFilters={handleResetFilters}
+            />
+
+            {/* Error Banner */}
+            {error && (
+              <div className="p-4 mb-6 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-300 flex items-center justify-between gap-4 text-sm shadow-lg">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                  <span>{error}</span>
+                </div>
+                <button
+                  onClick={fetchProductos}
+                  className="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Reintentar
+                </button>
+              </div>
             )}
-          </div>
+
+            {/* Grid de Productos */}
+            {loading ? (
+              <div className="py-20 flex flex-col items-center justify-center gap-3 text-slate-400">
+                <Loader2 className="w-9 h-9 animate-spin text-indigo-400" />
+                <p className="text-sm font-medium">Cargando productos de la API...</p>
+              </div>
+            ) : listaFinalProductos.length === 0 ? (
+              <div className="py-16 px-4 bg-slate-800/40 border border-slate-700/50 rounded-3xl text-center flex flex-col items-center justify-center gap-3">
+                <div className="p-4 bg-slate-800 rounded-full text-slate-400">
+                  <PackageX className="w-10 h-10" />
+                </div>
+                <h3 className="text-base font-bold text-slate-200 m-0">No se encontraron productos</h3>
+                <p className="text-xs text-slate-400 max-w-sm">
+                  Intenta cambiar el término de búsqueda, ajustar los filtros de precio/marca o registrar un nuevo producto.
+                </p>
+                <button
+                  onClick={handleOpenCreateModal}
+                  className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-medium transition-all shadow-lg shadow-indigo-600/20"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Crear Primer Producto</span>
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {listaFinalProductos.map((prod) => {
+                  const id = prod.id || prod.id_producto;
+                  return (
+                    <ProductCard
+                      key={id}
+                      producto={prod}
+                      onViewDetail={(pid) => setDetailProductId(pid)}
+                      onEdit={handleOpenEditModal}
+                      onDelete={handleOpenDeleteModal}
+                    />
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Paginación */}
+            {categoriaActiva && (
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={(p) => setPage(p)}
+              />
+            )}
+
+          </section>
+
         </div>
-      </div>
+      </main>
+
+      {/* Modales */}
+      {/* Modal Ficha Técnica / Detalle */}
+      {detailProductId && (
+        <ProductDetailModal
+          productId={detailProductId}
+          onClose={() => setDetailProductId(null)}
+          api={api}
+        />
+      )}
+
+      {/* Modal Formulario Crear/Editar */}
+      {isFormModalOpen && (
+        <ProductFormModal
+          isOpen={isFormModalOpen}
+          onClose={() => setIsFormModalOpen(false)}
+          onSubmit={handleSaveProduct}
+          initialData={editingProduct}
+          api={api}
+        />
+      )}
+
+      {/* Modal Confirmar Borrado */}
+      {deleteProductInfo && (
+        <ConfirmModal
+          isOpen={Boolean(deleteProductInfo)}
+          title="¿Eliminar producto?"
+          message={`¿Estás seguro de eliminar "${deleteProductInfo.name}"? Esta acción no se puede deshacer y borrará también su inventario.`}
+          confirmText="Sí, eliminar"
+          cancelText="Cancelar"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeleteProductInfo(null)}
+          loading={deleting}
+        />
+      )}
+
+      {/* Footer */}
+      <footer className="border-t border-slate-800 bg-slate-950/60 py-4 px-4 text-center text-xs text-slate-400 mt-auto">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+          <span>Sistema de Inventario REST API &copy; 2026</span>
+          <span className="text-slate-400">Desarrollado con React, Express & Tailwind CSS</span>
+        </div>
+      </footer>
+
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
