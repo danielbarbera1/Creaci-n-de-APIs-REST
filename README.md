@@ -27,26 +27,24 @@ npm run dev
 
 ---
 
-## 📋 Tareas Pendientes
-
-Ver: [PENDIENTES.md](./PENDIENTES.md)
-
----
-
-## 🗂️ Estructura del Proyecto
+## ️ Estructura del Proyecto
 
 ```
 API GET/
 ├── backend/          → Servidor Express.js + MySQL
-│   ├── index.js      → Punto de entrada del servidor y todos los endpoints
-│   ├── package.json  → Dependencias del backend
-│   └── public/       → Recursos estáticos (capturas, etc.)
+│   ├── config/       → Configuración de la base de datos
+│   ├── routes/       → Rutas modulares (productos, categorias, etc.)
+│   ├── middlewares/  → Middlewares (manejo de errores, validación)
+│   ├── schemas/      → Esquemas de validación Zod
+│   ├── index.js      → Punto de entrada del servidor
+│   └── package.json  → Dependencias del backend
 │
 ├── frontend/         → Aplicación React + Vite
+│   ├── public/       → Recursos estáticos y capturas de interfaz
 │   ├── src/
-│   │   ├── App.jsx   → Componente principal (categorías + productos)
-│   │   ├── App.css   → Estilos del componente principal
-│   │   ├── index.css → Estilos globales
+│   │   ├── components/ → Componentes UI reutilizables (Header, Sidebar, Modals, etc.)
+│   │   ├── App.jsx   → Componente principal (estado global y listado)
+│   │   ├── index.css → Estilos globales y configuración de modo oscuro
 │   │   └── main.jsx  → Punto de entrada de React
 │   ├── .env          → Variables de entorno (URL de la API)
 │   ├── vite.config.js
@@ -54,6 +52,30 @@ API GET/
 │
 └── README.md         ← Este archivo
 ```
+
+---
+
+## 🖼️ Galería de la Interfaz
+
+A continuación se muestra el nuevo diseño corporativo de la interfaz, que incluye soporte para modo claro/oscuro:
+
+### Panel Administrativo (Vista Principal)
+![Panel Administrativo](./frontend/public/panel%20administrativo.png)
+
+### Modo Oscuro
+![Modo Oscuro](./frontend/public/modo%20oscuro.png)
+
+### Crear un Nuevo Producto
+![Crear Producto](./frontend/public/crear%20un%20nuevo%20producto.png)
+
+### Editar Producto Existente
+![Editar Producto](./frontend/public/editar%20producto.png)
+
+### Detalle del Producto
+![Detalle de Producto](./frontend/public/detalle%20de%20producto.png)
+
+### Confirmación de Eliminación
+![Eliminar Producto](./frontend/public/eliminar%20producto.png)
 
 ---
 

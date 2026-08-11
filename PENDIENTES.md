@@ -60,8 +60,6 @@ Este archivo registra las funcionalidades y mejoras que faltan para completar el
 ## 🟢 DevOps & Documentación — Pendientes
 
 - [x] **Archivo `.env.example`** en el backend con las variables de entorno necesarias (sin valores reales)
-- [ ] **Script SQL de inicialización** — Un archivo `.sql` para crear las tablas y datos de prueba fácilmente
-- [ ] **Agregar `package.json` raíz** con scripts para levantar backend y frontend simultáneamente (`concurrently`)
 - [ ] **Colección de Postman** exportada (`.json`) con todos los endpoints documentados y listos para probar
 - [x] **Agregar `.gitignore`** en el backend
 
