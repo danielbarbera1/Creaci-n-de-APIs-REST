@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Tag, Layers, ChevronRight, Menu, X, Filter } from 'lucide-react';
+import { Layers, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function CategorySidebar({
   categorias,
@@ -14,90 +14,79 @@ export default function CategorySidebar({
     setIsOpenMobile(false);
   };
 
+  const SidebarContent = () => (
+    <nav className="space-y-0.5">
+      {/* Todas */}
+      <button
+        onClick={() => handleSelect(null)}
+        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${
+          categoriaActiva === null
+            ? 'bg-blue-50 text-blue-700'
+            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+        }`}
+      >
+        <span>Todos los productos</span>
+        {categoriaActiva === null && (
+          <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+            {totalProductosCount}
+          </span>
+        )}
+      </button>
+
+      {/* Lista categorías */}
+      <div className="pt-2 border-t border-gray-100 mt-2 space-y-0.5">
+        {categorias.map((cat) => {
+          const slug = cat.slug || cat.nombre_categoria?.toLowerCase().replace(/\s+/g, '-');
+          const nombre = cat.nombre || cat.nombre_categoria || cat.slug;
+          const isSelected = categoriaActiva === slug;
+
+          return (
+            <button
+              key={slug}
+              onClick={() => handleSelect(slug)}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left capitalize ${
+                isSelected
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${isSelected ? 'bg-blue-600' : 'bg-gray-300'}`} />
+                <span className="truncate">{nombre}</span>
+              </div>
+              {isSelected && (
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-blue-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+
   return (
-    <aside className="w-full lg:w-64 shrink-0">
-      {/* Botón Móvil para abrir menú de categorías */}
-      <div className="lg:hidden mb-4">
+    <aside className="w-full lg:w-56 shrink-0">
+      {/* Botón móvil */}
+      <div className="lg:hidden mb-3">
         <button
           onClick={() => setIsOpenMobile(!isOpenMobile)}
-          className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-slate-200 font-medium text-sm transition-colors hover:bg-slate-700/80"
+          className="w-full flex items-center justify-between px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
         >
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-indigo-400" />
-            <span>Categoría:</span>
-            <span className="font-semibold text-indigo-300 capitalize">
-              {categoriaActiva ? categoriaActiva : 'Todas las categorías'}
-            </span>
+            <Layers className="w-4 h-4 text-blue-600" />
+            <span className="capitalize">{categoriaActiva || 'Todas las categorías'}</span>
           </div>
-          {isOpenMobile ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+          {isOpenMobile ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
       </div>
 
-      {/* Menú de Categorías (Escritorio o desplegado en Móvil) */}
-      <div className={`
-        ${isOpenMobile ? 'block' : 'hidden'} lg:block 
-        bg-slate-800/60 backdrop-blur-md border border-slate-700/60 rounded-2xl p-4 shadow-xl space-y-2
-      `}>
-        <div className="flex items-center justify-between pb-3 border-b border-slate-700/60 mb-2">
-          <div className="flex items-center gap-2 text-slate-300 font-semibold text-sm">
-            <Layers className="w-4 h-4 text-indigo-400" />
-            <span>Categorías</span>
-          </div>
-          <span className="text-xs px-2 py-0.5 bg-slate-700/60 text-slate-400 rounded-full font-mono">
-            {categorias.length}
-          </span>
+      {/* Desktop sidebar */}
+      <div className={`${isOpenMobile ? 'block' : 'hidden'} lg:block bg-white border border-gray-200 rounded-xl p-3 shadow-sm`}>
+        <div className="flex items-center gap-2 px-1 pb-3 mb-1">
+          <Layers className="w-4 h-4 text-gray-400" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Categorías</span>
         </div>
-
-        {/* Opción Todas */}
-        <button
-          onClick={() => handleSelect(null)}
-          className={`
-            w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-left group
-            ${categoriaActiva === null
-              ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 shadow-sm'
-              : 'text-slate-300 hover:bg-slate-700/50 hover:text-slate-100 border border-transparent'
-            }
-          `}
-        >
-          <div className="flex items-center gap-2.5">
-            <Tag className={`w-4 h-4 ${categoriaActiva === null ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-300'}`} />
-            <span>Todas las categorías</span>
-          </div>
-          {categoriaActiva === null && (
-            <ChevronRight className="w-4 h-4 text-indigo-400" />
-          )}
-        </button>
-
-        {/* Lista de Categorías de la API */}
-        <div className="space-y-1 max-h-[60vh] overflow-y-auto pr-1">
-          {categorias.map((cat) => {
-            const slug = cat.slug || cat.nombre_categoria?.toLowerCase().replace(/\s+/g, '-');
-            const nombre = cat.nombre || cat.nombre_categoria || cat.slug;
-            const isSelected = categoriaActiva === slug;
-
-            return (
-              <button
-                key={slug}
-                onClick={() => handleSelect(slug)}
-                className={`
-                  w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-left capitalize group
-                  ${isSelected
-                    ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 shadow-sm'
-                    : 'text-slate-300 hover:bg-slate-700/50 hover:text-slate-100 border border-transparent'
-                  }
-                `}
-              >
-                <div className="flex items-center gap-2.5 truncate">
-                  <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-indigo-400' : 'bg-slate-500 group-hover:bg-indigo-400'}`} />
-                  <span className="truncate">{nombre}</span>
-                </div>
-                {isSelected && (
-                  <ChevronRight className="w-4 h-4 text-indigo-400 shrink-0" />
-                )}
-              </button>
-            );
-          })}
-        </div>
+        <SidebarContent />
       </div>
     </aside>
   );

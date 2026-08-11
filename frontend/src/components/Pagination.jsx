@@ -4,54 +4,44 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 export default function Pagination({ page, totalPages, onPageChange }) {
   if (!totalPages || totalPages <= 1) return null;
 
-  // Generate list of page numbers to render
   const pages = [];
   for (let i = 1; i <= totalPages; i++) {
     pages.push(i);
   }
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-800 text-xs text-slate-400">
-      <div>
-        <span>Página <strong className="text-slate-200">{page}</strong> de <strong className="text-slate-200">{totalPages}</strong></span>
-      </div>
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-5 mt-4 border-t border-gray-200 text-xs text-gray-500">
+      <span>
+        Página <strong className="text-gray-800">{page}</strong> de <strong className="text-gray-800">{totalPages}</strong>
+      </span>
 
-      <div className="flex items-center gap-1.5">
-        {/* Previous button */}
+      <div className="flex items-center gap-1">
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-800 text-slate-200 border border-slate-700 transition-colors"
-          title="Página Anterior"
+          className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
 
-        {/* Page Numbers */}
-        <div className="flex items-center gap-1">
-          {pages.map((p) => (
-            <button
-              key={p}
-              onClick={() => onPageChange(p)}
-              className={`
-                px-3 py-1.5 rounded-xl font-medium transition-all
-                ${p === page
-                  ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/20'
-                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700 border border-slate-700/60'
-                }
-              `}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
+        {pages.map((p) => (
+          <button
+            key={p}
+            onClick={() => onPageChange(p)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+              p === page
+                ? 'bg-blue-700 text-white border-blue-700 shadow-sm'
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            {p}
+          </button>
+        ))}
 
-        {/* Next button */}
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
-          className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-800 text-slate-200 border border-slate-700 transition-colors"
-          title="Página Siguiente"
+          className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 transition-colors"
         >
           <ChevronRight className="w-4 h-4" />
         </button>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { SlidersHorizontal, RotateCcw, ArrowUpDown } from 'lucide-react';
+import { SlidersHorizontal, RotateCcw } from 'lucide-react';
 
 export default function FilterBar({
   marcas,
@@ -18,92 +18,94 @@ export default function FilterBar({
   const hasActiveFilters = selectedBrand || minPrice || maxPrice || sortBy !== 'nombre_producto';
 
   return (
-    <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-3.5 mb-6 backdrop-blur-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-medium text-slate-300">
-        
-        {/* Title */}
-        <div className="flex items-center gap-2 text-indigo-400 font-semibold">
-          <SlidersHorizontal className="w-4 h-4" />
-          <span>Filtros y Orden</span>
-        </div>
+    <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 mb-5 shadow-sm flex flex-wrap items-center gap-3">
+      
+      <div className="flex items-center gap-1.5 text-gray-500 shrink-0">
+        <SlidersHorizontal className="w-4 h-4" />
+        <span className="text-xs font-semibold uppercase tracking-wider">Filtros</span>
+      </div>
 
-        {/* Form Controls Container */}
-        <div className="flex flex-wrap items-center gap-3 flex-1 justify-end">
-          
-          {/* Rango de Precios */}
-          <div className="flex items-center gap-1.5 bg-slate-900/60 border border-slate-700/80 rounded-xl px-2.5 py-1.5">
-            <span className="text-slate-400">Precio $:</span>
-            <input
-              type="number"
-              placeholder="Mín"
-              value={minPrice}
-              onChange={(e) => onMinPriceChange(e.target.value)}
-              className="w-14 bg-transparent text-slate-100 placeholder-slate-500 focus:outline-none text-xs"
-              min="0"
-            />
-            <span className="text-slate-500">-</span>
-            <input
-              type="number"
-              placeholder="Máx"
-              value={maxPrice}
-              onChange={(e) => onMaxPriceChange(e.target.value)}
-              className="w-14 bg-transparent text-slate-100 placeholder-slate-500 focus:outline-none text-xs"
-              min="0"
-            />
-          </div>
+      <div className="w-px h-4 bg-gray-200 hidden sm:block" />
 
-          {/* Selector de Marcas */}
-          <div className="bg-slate-900/60 border border-slate-700/80 rounded-xl px-2 py-1.5">
-            <select
-              value={selectedBrand}
-              onChange={(e) => onBrandChange(e.target.value)}
-              className="bg-transparent text-slate-200 focus:outline-none text-xs cursor-pointer pr-1"
-            >
-              <option value="" className="bg-slate-800 text-slate-200">Todas las marcas</option>
-              {marcas.map((m) => (
-                <option key={m.id_marca || m.nombre_marca} value={m.nombre_marca} className="bg-slate-800 text-slate-200">
-                  {m.nombre_marca}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Criterio de Ordenamiento */}
-          <div className="flex items-center gap-1.5 bg-slate-900/60 border border-slate-700/80 rounded-xl px-2 py-1.5">
-            <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
-            <select
-              value={sortBy}
-              onChange={(e) => onSortByChange(e.target.value)}
-              className="bg-transparent text-slate-200 focus:outline-none text-xs cursor-pointer"
-            >
-              <option value="nombre_producto" className="bg-slate-800">Nombre</option>
-              <option value="precio_publico" className="bg-slate-800">Precio</option>
-              <option value="stock_actual" className="bg-slate-800">Stock</option>
-              <option value="marca" className="bg-slate-800">Marca</option>
-            </select>
-
-            <button
-              onClick={() => onSortOrderChange(sortOrder === 'ASC' ? 'DESC' : 'ASC')}
-              className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-indigo-400 font-bold uppercase transition-colors"
-              title={sortOrder === 'ASC' ? 'Orden Ascendente' : 'Orden Descendente'}
-            >
-              {sortOrder}
-            </button>
-          </div>
-
-          {/* Reset Filters */}
-          {hasActiveFilters && (
-            <button
-              onClick={onResetFilters}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-xl transition-all text-xs font-medium"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Limpiar</span>
-            </button>
-          )}
-
+      {/* Precio rango */}
+      <div className="flex items-center gap-2">
+        <label className="text-xs text-gray-500 font-medium shrink-0">Precio:</label>
+        <div className="flex items-center gap-1 bg-gray-100 rounded-lg px-2 py-1.5 border border-gray-200 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-100 transition-all">
+          <span className="text-gray-400 text-xs">$</span>
+          <input
+            type="number"
+            placeholder="Mín"
+            value={minPrice}
+            onChange={(e) => onMinPriceChange(e.target.value)}
+            className="w-14 bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none text-xs"
+            min="0"
+          />
+          <span className="text-gray-300 text-xs">–</span>
+          <input
+            type="number"
+            placeholder="Máx"
+            value={maxPrice}
+            onChange={(e) => onMaxPriceChange(e.target.value)}
+            className="w-14 bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none text-xs"
+            min="0"
+          />
         </div>
       </div>
+
+      {/* Marca */}
+      <div className="flex items-center gap-2">
+        <label className="text-xs text-gray-500 font-medium shrink-0">Marca:</label>
+        <select
+          value={selectedBrand}
+          onChange={(e) => onBrandChange(e.target.value)}
+          className="text-xs bg-gray-100 border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-800 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 cursor-pointer transition-all"
+        >
+          <option value="">Todas</option>
+          {marcas.map((m) => (
+            <option key={m.id_marca || m.nombre_marca} value={m.nombre_marca}>
+              {m.nombre_marca}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Ordenar */}
+      <div className="flex items-center gap-2">
+        <label className="text-xs text-gray-500 font-medium shrink-0">Ordenar:</label>
+        <div className="flex items-center gap-1">
+          <select
+            value={sortBy}
+            onChange={(e) => onSortByChange(e.target.value)}
+            className="text-xs bg-gray-100 border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-800 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 cursor-pointer transition-all"
+          >
+            <option value="nombre_producto">Nombre</option>
+            <option value="precio_publico">Precio</option>
+            <option value="stock_actual">Stock</option>
+            <option value="marca">Marca</option>
+          </select>
+          <button
+            onClick={() => onSortOrderChange(sortOrder === 'ASC' ? 'DESC' : 'ASC')}
+            className="px-2.5 py-1.5 text-xs font-bold bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-600 rounded-lg transition-colors"
+            title={sortOrder === 'ASC' ? 'Ascendente' : 'Descendente'}
+          >
+            {sortOrder === 'ASC' ? '↑ Asc' : '↓ Des'}
+          </button>
+        </div>
+      </div>
+
+      {/* Limpiar */}
+      {hasActiveFilters && (
+        <>
+          <div className="w-px h-4 bg-gray-200 hidden sm:block" />
+          <button
+            onClick={onResetFilters}
+            className="flex items-center gap-1.5 text-xs font-medium text-blue-700 hover:text-blue-800 hover:bg-blue-50 px-2.5 py-1.5 rounded-lg transition-colors border border-transparent hover:border-blue-100"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            Limpiar filtros
+          </button>
+        </>
+      )}
     </div>
   );
 }

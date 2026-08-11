@@ -34,6 +34,27 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Inicializar desde localStorage o preferir dark mode si está en SO
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('theme');
+      if (saved) return saved === 'dark';
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
+  });
+
+  // Efecto para aplicar la clase dark al html y guardar en localStorage
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isDarkMode) {
+      root.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      root.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
 
   // Modals
   const [detailProductId, setDetailProductId] = useState(null);
@@ -180,19 +201,19 @@ function App() {
     }
 
     // Precios
-    if (minPrice) {
-      const min = parseFloat(minPrice);
+    const hasAnyPriceFilter = minPrice !== '' || maxPrice !== '';
+    if (hasAnyPriceFilter) {
+      const min = minPrice !== '' ? parseFloat(minPrice) : null;
+      const max = maxPrice !== '' ? parseFloat(maxPrice) : null;
       list = list.filter(p => {
-        const precio = p.inventario?.precio_publico ?? p.precio_publico ?? p.precio ?? 0;
-        return parseFloat(precio) >= min;
-      });
-    }
-
-    if (maxPrice) {
-      const max = parseFloat(maxPrice);
-      list = list.filter(p => {
-        const precio = p.inventario?.precio_publico ?? p.precio_publico ?? p.precio ?? 0;
-        return parseFloat(precio) <= max;
+        const precio = parseFloat(
+          p.inventario?.precio_publico ?? p.precio_publico ?? p.precio ?? null
+        );
+        // Excluir productos sin precio cuando hay filtro activo
+        if (isNaN(precio) || precio === null) return false;
+        if (min !== null && precio < min) return false;
+        if (max !== null && precio > max) return false;
+        return true;
       });
     }
 
@@ -287,7 +308,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans selection:bg-blue-200 selection:text-blue-900">
       
       {/* Toast Notification */}
       <Toast toast={toast} onClose={() => setToast(null)} />
@@ -300,6 +321,8 @@ function App() {
         totalProducts={totalProductsCount}
         onRefresh={fetchProductos}
         loading={loading}
+        isDarkMode={isDarkMode}
+        toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
       />
 
       {/* Main Content Area */}
@@ -318,12 +341,12 @@ function App() {
           <section className="flex-1 min-w-0">
             
             {/* Header del Panel */}
-            <div className="flex items-center justify-between gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
               <div>
-                <h2 className="text-2xl font-extrabold text-white tracking-tight capitalize m-0">
+                <h2 className="text-xl font-bold text-gray-900 tracking-tight capitalize m-0">
                   {categoriaActiva ? `Categoría: ${categoriaActiva}` : 'Catálogo Completo'}
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-gray-500 mt-1">
                   Mostrando {listaFinalProductos.length} producto(s)
                   {categoriaActiva ? ` en esta categoría` : ''}
                 </p>
@@ -348,14 +371,14 @@ function App() {
 
             {/* Error Banner */}
             {error && (
-              <div className="p-4 mb-6 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-300 flex items-center justify-between gap-4 text-sm shadow-lg">
+              <div className="p-4 mb-5 bg-red-50 border border-red-200 rounded-xl text-red-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-sm shadow-sm">
                 <div className="flex items-center gap-3">
-                  <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
-                  <span>{error}</span>
+                  <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                  <span className="font-medium">{error}</span>
                 </div>
                 <button
                   onClick={fetchProductos}
-                  className="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                  className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   Reintentar
@@ -365,22 +388,22 @@ function App() {
 
             {/* Grid de Productos */}
             {loading ? (
-              <div className="py-20 flex flex-col items-center justify-center gap-3 text-slate-400">
-                <Loader2 className="w-9 h-9 animate-spin text-indigo-400" />
-                <p className="text-sm font-medium">Cargando productos de la API...</p>
+              <div className="py-24 flex flex-col items-center justify-center gap-3 text-gray-400">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                <p className="text-sm font-medium">Cargando productos...</p>
               </div>
             ) : listaFinalProductos.length === 0 ? (
-              <div className="py-16 px-4 bg-slate-800/40 border border-slate-700/50 rounded-3xl text-center flex flex-col items-center justify-center gap-3">
-                <div className="p-4 bg-slate-800 rounded-full text-slate-400">
-                  <PackageX className="w-10 h-10" />
+              <div className="py-16 px-4 bg-white border border-gray-200 rounded-2xl text-center flex flex-col items-center justify-center gap-3 shadow-sm">
+                <div className="p-4 bg-gray-50 rounded-full text-gray-400">
+                  <PackageX className="w-8 h-8" />
                 </div>
-                <h3 className="text-base font-bold text-slate-200 m-0">No se encontraron productos</h3>
-                <p className="text-xs text-slate-400 max-w-sm">
-                  Intenta cambiar el término de búsqueda, ajustar los filtros de precio/marca o registrar un nuevo producto.
+                <h3 className="text-sm font-bold text-gray-900 m-0">No se encontraron productos</h3>
+                <p className="text-xs text-gray-500 max-w-sm">
+                  Intenta cambiar el término de búsqueda, ajustar los filtros o registrar un nuevo producto.
                 </p>
                 <button
                   onClick={handleOpenCreateModal}
-                  className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-medium transition-all shadow-lg shadow-indigo-600/20"
+                  className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Crear Primer Producto</span>
@@ -453,10 +476,10 @@ function App() {
       )}
 
       {/* Footer */}
-      <footer className="border-t border-slate-800 bg-slate-950/60 py-4 px-4 text-center text-xs text-slate-400 mt-auto">
+      <footer className="border-t border-gray-200 bg-white py-5 px-4 text-center text-xs text-gray-500 mt-auto">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>Sistema de Inventario REST API &copy; 2026</span>
-          <span className="text-slate-400">Desarrollado con React, Express & Tailwind CSS</span>
+          <span className="font-medium text-gray-700">Panel de administrador &copy; 2026</span>
+          <span className="text-gray-400">Desarrollado con React, Express & Tailwind CSS</span>
         </div>
       </footer>
 
