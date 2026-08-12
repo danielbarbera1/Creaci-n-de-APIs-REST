@@ -1,81 +1,89 @@
 # ⚙️ Backend — API REST con Express.js + MySQL
 
-Servidor REST construido con **Express.js 5** y **MySQL2** que expone los endpoints para gestionar el inventario de productos de una ferretería.
+Servidor REST construido con **Express.js 5** y **MySQL2** que expone los endpoints para gestionar el inventario de productos de una ferretería. 
 
 ---
 
-## 📁 Estructura
+## 📁 Estructura del Proyecto
+
+El proyecto está modularizado para mantener un código limpio y escalable:
 
 ```
 backend/
-├── index.js        → Servidor principal: configuración, middlewares y todos los endpoints
-├── package.json    → Dependencias
-└── public/
-    └── GET_PRODUCTOS.png   → Captura de ejemplo de la API funcionando
+├── config/
+│   └── db.js               → Configuración y Pool de conexiones de la base de datos
+├── middlewares/
+│   ├── errorHandler.js     → Manejo centralizado de errores
+│   └── validate.js         → Middleware de validación usando Zod
+├── routes/
+│   ├── categorias.js       → Endpoints de categorías
+│   ├── marcas.js           → Endpoints de marcas
+│   ├── productos.js        → Endpoints de productos
+│   └── ubicaciones.js      → Endpoints de ubicaciones
+├── schemas/                → Esquemas de validación Zod (productos, marcas, etc.)
+├── index.js                → Punto de entrada, configuración de Express y montaje de rutas
+└── package.json            → Dependencias y scripts
 ```
 
 ---
 
-## 🚀 Stack
+## 🚀 Stack Tecnológico
 
 | Tecnología    | Versión  | Uso                                      |
 |---------------|----------|------------------------------------------|
 | Node.js       | ≥ 18     | Runtime de JavaScript                    |
 | Express.js    | ^5.2.1   | Framework HTTP                           |
 | mysql2        | ^3.22.6  | Driver MySQL con soporte async/await     |
+| zod           | ^4.4.3   | Validación estricta de esquemas y datos  |
 | cors          | ^2.8.6   | Habilitar peticiones cross-origin        |
+| dotenv        | ^17.4.2  | Gestión de variables de entorno          |
+| nodemon       | ^3.1.14  | Recarga automática en desarrollo         |
 
 ---
 
 ## ⚙️ Configuración
 
-### Conexión a la Base de Datos
+### Variables de Entorno
 
-En `index.js` la base de datos se configura mediante un **Pool de Conexiones** (`mysql.createPool`) utilizando variables de entorno para soporte en desarrollo local y producción (por ejemplo, en Vercel con SSL):
+Se requiere un archivo `.env` en la raíz de `backend/` basado en `.env.example`:
 
-```js
-const dbConfig = {
-    host: process.env.DB_HOST,
-    port: Number(process.env.DB_PORT) || 3306,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    ssl: {
-        rejectUnauthorized: false
-    },
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
-};
-
-const connection = mysql.createPool(dbConfig);
+```env
+PORT=3000
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=express
+DB_PORT=3306
+# DB_SSL=true # Descomentar para producción si se requiere SSL
 ```
 
-> 🔒 **Variables de entorno:** En producción, las credenciales se leen automáticamente de `process.env`. Para desarrollo local puedes definir estas variables en tu entorno o archivo `.env`.
+### Conexión a la Base de Datos (`config/db.js`)
 
-### Middlewares activos
-
-```js
-app.use(cors());          // Acepta peticiones de cualquier origen
-app.use(express.json());  // Parsea el body como JSON (necesario para POST/PUT)
-```
+Se utiliza un **Pool de Conexiones** (`mysql.createPool`) para gestionar eficientemente las conexiones a la base de datos, con soporte para SSL en producción.
 
 ---
 
 ## 🔧 Instalación y Ejecución
 
 ```bash
-# Instalar dependencias
+# 1. Instalar dependencias
 npm install
 
-# Levantar el servidor
-node index.js
+# 2. Configurar variables de entorno
+cp .env.example .env
+# Edita .env con tus credenciales de MySQL
 
-# El servidor queda en:
+# 3. Levantar el servidor en modo desarrollo (usa nodemon)
+npm run dev
+
+# O en modo producción
+npm start
+
+# El servidor quedará escuchando en:
 # http://localhost:3000
 ```
 
-> Asegúrate de que **Laragon** (MySQL) esté corriendo antes de iniciar el servidor.
+> Asegúrate de que tu servidor MySQL (ej. Laragon, XAMPP, o Docker) esté corriendo y que hayas importado el script SQL proporcionado (`express.sql`).
 
 ---
 
@@ -86,389 +94,59 @@ node index.js
 http://localhost:3000/api
 ```
 
----
+### 🛒 Productos (`/api/productos`)
 
-### 🛒 Productos
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `GET` | `/api/productos` | Retorna todos los productos (soporta paginación: `?page=1&limit=10`) |
+| `GET` | `/api/productos/search?q=termino` | Búsqueda global de productos |
+| `GET` | `/api/productos/:id` | Obtener detalle completo de un producto por su ID |
+| `GET` | `/api/productos/categories/:slug` | Productos por categoría (soporta filtros: `brand`, `minPrice`, `maxPrice`, `search`, y ordenamiento) |
+| `POST` | `/api/productos` | Crear un nuevo producto (usa transacción para insertar en `productos` e `inventario`) |
+| `PUT` | `/api/productos/:id` | Actualizar completamente un producto |
+| `PATCH` | `/api/productos/:id` | Actualizar parcialmente un producto |
+| `DELETE`| `/api/productos/:id` | Eliminar un producto y su inventario |
 
----
+### 🏷️ Marcas (`/api/marcas`)
 
-#### `GET /api/productos`
-Retorna el listado básico de todos los productos.
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `GET` | `/api/marcas` | Listar todas las marcas |
+| `GET` | `/api/marcas/:id` | Obtener una marca por ID |
+| `POST` | `/api/marcas` | Crear una nueva marca |
+| `PUT` | `/api/marcas/:id` | Actualizar una marca |
+| `DELETE`| `/api/marcas/:id` | Eliminar una marca |
 
-**Ejemplo de petición:**
-```
-GET http://localhost:3000/api/productos
-```
+### 📁 Categorías (`/api/categorias`)
 
-**Respuesta `200 OK`:**
-```json
-[
-  {
-    "id_producto": 1,
-    "nombre_producto": "Juego de Destornilladores Stanley",
-    "descripcion_detallada": "Set de 10 piezas magneticas (Estria/Pala)",
-    "id_marca": 1,
-    "id_categoria": 1,
-    "id_unidad": 1
-  },
-  ...
-]
-```
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `GET` | `/api/categorias` | Listar todas las categorías |
+| `GET` | `/api/categorias/:id` | Obtener una categoría por ID |
+| `POST` | `/api/categorias` | Crear una categoría (genera `slug` automáticamente) |
+| `PUT` | `/api/categorias/:id` | Actualizar una categoría |
+| `DELETE`| `/api/categorias/:id` | Eliminar una categoría |
 
----
+### 📍 Ubicaciones (`/api/ubicaciones`)
 
-#### `GET /api/productos/:id`
-Retorna un producto por su ID con todos los datos relacionados (marca, categoría, unidad, inventario, ubicación).
-
-**Ejemplo de petición:**
-```
-GET http://localhost:3000/api/productos/8
-```
-
-**Respuesta `200 OK`:**
-```json
-{
-  "id": 8,
-  "nombre": "Taladro Percutor DeWalt 20V",
-  "descripcion": "Inalambrico, mandril de 1/2 pulgada con 2 baterias",
-  "marca": {
-    "id": 6,
-    "nombre": "DeWalt"
-  },
-  "categoria": {
-    "id": 2,
-    "nombre": "Herramientas Electricas"
-  },
-  "unidad": {
-    "id": 1,
-    "nombre": "Unidad",
-    "abreviatura": "unid"
-  },
-  "inventario": {
-    "id": 8,
-    "precio": 180.00,
-    "costo": 135.00,
-    "stock": 45,
-    "min_stock": 0,
-    "max_stock": 0,
-    "estado": "In Stock"
-  },
-  "ubicacion": {
-    "id": 6,
-    "fullLocation": "Pasillo B - Vitrina 1",
-    "aisle": "Pasillo B",
-    "shelf": "Vitrina 1",
-    "zone": null
-  }
-}
-```
-
-**Errores posibles:**
-| Código | Causa                                |
-|--------|--------------------------------------|
-| `400`  | ID no es un número positivo          |
-| `404`  | No existe producto con ese ID        |
-| `500`  | Error de conexión a la base de datos |
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `GET` | `/api/ubicaciones` | Listar todas las ubicaciones |
+| `GET` | `/api/ubicaciones/:id` | Obtener una ubicación por ID |
+| `POST` | `/api/ubicaciones` | Crear una ubicación |
+| `PUT` | `/api/ubicaciones/:id` | Actualizar una ubicación |
+| `DELETE`| `/api/ubicaciones/:id` | Eliminar una ubicación |
 
 ---
 
-#### `GET /api/productos/categories/:slug`
-Retorna productos filtrados por categoría. Admite paginación, filtros y ordenamiento.
+## 🛡️ Manejo de Errores y Validaciones
 
-**Ejemplo de petición:**
-```
-GET http://localhost:3000/api/productos/categories/herramientas-electricas
-GET http://localhost:3000/api/productos/categories/electricidad?brand=Schneider&minPrice=10&maxPrice=50&page=1&limit=5&sortBy=precio_publico&sortOrder=DESC
-```
-
-**Query params:**
-
-| Parámetro   | Tipo   | Default          | Descripción                                   |
-|-------------|--------|------------------|-----------------------------------------------|
-| `brand`     | string | —                | Filtrar por nombre de marca exacto            |
-| `minPrice`  | number | —                | Precio público mínimo                         |
-| `maxPrice`  | number | —                | Precio público máximo                         |
-| `search`    | string | —                | Busca en nombre_producto y descripcion_detallada |
-| `sortBy`    | string | `nombre_producto`| Campo: `nombre_producto`, `precio_publico`, `stock_actual`, `marca`, `id_producto` |
-| `sortOrder` | string | `ASC`            | `ASC` o `DESC`                                |
-| `page`      | number | `1`              | Página de resultados                          |
-| `limit`     | number | `10`             | Resultados por página                         |
-
-**Respuesta `200 OK`:**
-```json
-{
-  "categoria": {
-    "id": 2,
-    "nombre": "Herramientas Electricas",
-    "slug": "herramientas-electricas"
-  },
-  "total": 6,
-  "page": 1,
-  "limit": 10,
-  "totalPages": 1,
-  "products": [
-    {
-      "id": 8,
-      "nombre": "Taladro Percutor DeWalt 20V",
-      "slug": "taladro-percutor-dewalt-20v",
-      "descripcion": "...",
-      "marca": { "id": 6, "nombre": "DeWalt" },
-      "categoria": { "id": 2, "nombre": "Herramientas Electricas", "slug": "herramientas-electricas" },
-      "unidad": { "id": 1, "nombre": "Unidad", "abreviatura": "unid" },
-      "inventario": {
-        "id": 8,
-        "precio_publico": 180.00,
-        "costo_proveedor": 135.00,
-        "stock_actual": 45,
-        "stock_minimo": 0,
-        "stock_maximo": 0,
-        "disponibilidad": "In Stock"
-      },
-      "ubicacion": {
-        "id": 6,
-        "ubicacion_completa": "Pasillo B - Vitrina 1",
-        "pasillo": "Pasillo B",
-        "estante": "Vitrina 1",
-        "zona": null
-      },
-      "created_at": "2026-07-11T17:35:38.000Z",
-      "updated_at": "2026-07-18T17:45:50.000Z"
-    }
-  ],
-  "filtros_aplicados": {
-    "marca": null,
-    "precio_minimo": null,
-    "precio_maximo": null,
-    "busqueda": null,
-    "ordenar_por": "nombre_producto",
-    "orden": "ASC"
-  },
-  "resumen": {
-    "total_stock": 213,
-    "precio_promedio": "151.67",
-    "marcas_disponibles": ["Black+Decker", "Bosch", "DeWalt", "Makita"]
-  }
-}
-```
-
-> **Comportamiento especial:** Si el slug no existe, retorna `404` con la propiedad `availableCategories` — el frontend lo usa para cargar el menú de categorías sin necesidad de un endpoint dedicado.
-
-**Errores posibles:**
-| Código | Causa                                       |
-|--------|---------------------------------------------|
-| `400`  | Slug vacío                                  |
-| `301`  | Slug no existe pero sí el nombre de categoría (sugiere el slug correcto) |
-| `404`  | Categoría no encontrada (incluye lista de disponibles) |
-| `500`  | Error de conexión a la base de datos        |
+- **Validación con Zod**: Todos los endpoints `POST`, `PUT` y `PATCH` validan el cuerpo de la petición (body) usando `zod` a través del middleware `validate.js`. Si los datos son inválidos, se retorna `400 Bad Request` con el detalle de los errores.
+- **Middleware de Errores**: `errorHandler.js` captura errores generales y de base de datos (ej. violación de llaves foráneas `ER_ROW_IS_REFERENCED`, entradas duplicadas `ER_DUP_ENTRY`) y responde con mensajes amigables y códigos HTTP adecuados.
 
 ---
 
-#### `POST /api/productos`
-Crea un nuevo producto e inserta su registro de inventario en una **transacción atómica** (si falla cualquier paso, todo se revierte).
+## ⚠️ Notas de Arquitectura
 
-**Body `application/json`:**
-```json
-{
-  "nombre_producto": "Sierra Circular 7-1/4\"",
-  "descripcion_detallada": "Motor de 1800W con disco de 24 dientes carburo",
-  "id_marca": 7,
-  "id_categoria": 2,
-  "id_unidad": 1,
-  "precio_publico": 145.00,
-  "costo_proveedor": 105.00,
-  "stock_actual": 20,
-  "id_ubicacion": 7
-}
-```
-
-| Campo               | Tipo    | Requerido | Descripción                    |
-|---------------------|---------|-----------|--------------------------------|
-| `nombre_producto`   | string  | ✅        | Nombre del producto            |
-| `descripcion_detallada` | string | ❌    | Descripción larga              |
-| `id_marca`          | integer | ✅        | ID de la marca                 |
-| `id_categoria`      | integer | ✅        | ID de la categoría             |
-| `id_unidad`         | integer | ❌        | ID de unidad (default: 1)      |
-| `precio_publico`    | decimal | ❌        | Precio de venta                |
-| `costo_proveedor`   | decimal | ❌        | Costo de compra                |
-| `stock_actual`      | integer | ❌        | Stock inicial (default: 0)     |
-| `id_ubicacion`      | integer | ❌        | ID de la ubicación en almacén  |
-
-**Respuesta `201 Created`:**
-```json
-{
-  "message": "Producto creado exitosamente",
-  "product": {
-    "id_producto": 41,
-    "nombre_producto": "Sierra Circular 7-1/4\"",
-    "marca": "Bosch",
-    "categoria": "Herramientas Electricas",
-    "precio_publico": 145.00,
-    "costo_proveedor": 105.00,
-    "stock_actual": 20,
-    "ubicacion_completa": "Pasillo B - Vitrina 2"
-  }
-}
-```
-
-**Errores posibles:**
-| Código | Causa                                              |
-|--------|----------------------------------------------------|
-| `400`  | Faltan campos obligatorios o producto duplicado    |
-| `500`  | Error al crear el producto                         |
-
----
-
-#### `PUT /api/productos/:id`
-Actualiza completamente un producto existente y su inventario (también en transacción).
-
-**Ejemplo de petición:**
-```
-PUT http://localhost:3000/api/productos/41
-```
-
-**Body `application/json`:** Mismos campos que el `POST`.
-
-**Respuesta `200 OK`:**
-```json
-{
-  "message": "Producto actualizado exitosamente",
-  "product": { ... }
-}
-```
-
-**Errores posibles:**
-| Código | Causa                            |
-|--------|----------------------------------|
-| `400`  | ID inválido                      |
-| `404`  | Producto no encontrado           |
-| `500`  | Error al actualizar              |
-
----
-
-#### `DELETE /api/productos/:id`
-Elimina un producto. Primero borra su registro de inventario (para respetar la FK) y luego el producto.
-
-**Ejemplo de petición:**
-```
-DELETE http://localhost:3000/api/productos/41
-```
-
-**Respuesta `200 OK`:**
-```json
-{
-  "message": "Producto \"Sierra Circular 7-1/4\"\" eliminado exitosamente",
-  "deletedId": 41
-}
-```
-
-**Errores posibles:**
-| Código | Causa                            |
-|--------|----------------------------------|
-| `400`  | ID inválido                      |
-| `404`  | Producto no encontrado           |
-| `500`  | Error al eliminar                |
-
----
-
-### 🏷️ Marcas
-
-#### `GET /api/marcas`
-Retorna todas las marcas disponibles.
-
-```
-GET http://localhost:3000/api/marcas
-```
-
-```json
-[
-  { "id_marca": 1, "nombre_marca": "Stanley" },
-  { "id_marca": 6, "nombre_marca": "DeWalt" },
-  { "id_marca": 7, "nombre_marca": "Bosch" }
-]
-```
-
----
-
-### 📁 Categorías
-
-#### `GET /api/categorias`
-Retorna todas las categorías.
-
-```
-GET http://localhost:3000/api/categorias
-```
-
-```json
-[
-  { "id_categoria": 1, "nombre_categoria": "Herramientas Manuales", "descripcion_categoria": "..." },
-  { "id_categoria": 2, "nombre_categoria": "Herramientas Electricas", "descripcion_categoria": "..." }
-]
-```
-
----
-
-### 📍 Ubicaciones
-
-#### `GET /api/ubicaciones`
-Retorna todas las ubicaciones del almacén.
-
-```
-GET http://localhost:3000/api/ubicaciones
-```
-
-```json
-[
-  { "id_ubicacion": 1, "pasillo": "Pasillo A", "estante": "Estante 2", "ubicacion_completa": "Pasillo A - Estante 2" },
-  { "id_ubicacion": 6, "pasillo": "Pasillo B", "estante": "Vitrina 1", "ubicacion_completa": "Pasillo B - Vitrina 1" }
-]
-```
-
----
-
-## 🔁 Función Auxiliar Interna
-
-### `getAvailableCategories()`
-
-Función interna (no es un endpoint) usada por `GET /api/productos/categories/:slug` cuando el slug no existe. Retorna un arreglo de categorías disponibles para informar al cliente qué slugs puede usar reutilizando el pool de conexiones.
-
-```js
-// Retorna: [{ nombre: "Herramientas Manuales", slug: "herramientas-manuales" }, ...]
-```
-
----
-
-## 🌐 Puerto del Servidor y Despliegue (Vercel)
-
-El servidor se inicializa condicionalmente en desarrollo y exporta la app Express para Serverless Functions en plataformas como Vercel:
-
-```js
-const PORT = process.env.PORT || 3000;
-if (process.env.NODE_ENV !== 'production') {
-    app.listen(PORT, () => {
-        console.log(`Servidor Express escuchando en http://localhost:${PORT}`);
-    });
-}
-
-module.exports = app;
-```
-
----
-
-## ⚠️ Notas Importantes
-
-- **Pool de Conexiones Reutilizable:** Implementado con `mysql2.createPool()`. Evita la saturación de conexiones en la base de datos tanto en desarrollo como en producción.
-- **Variables de Entorno:** Credenciales configurables dinámicamente vía `process.env` (`DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`).
-- **Soporte SSL:** Habilitado con `rejectUnauthorized: false` para bases de datos hospedadas en la nube (Aiven, PlanetScale, TiDB, Railway, etc.).
-- **Transacciones en escritura:** Los endpoints `POST`, `PUT` y `DELETE` utilizan transacciones con `getConnection()`, `beginTransaction()`, `commit()`, `rollback()` y `release()` para garantizan consistencia atómica.
-- **CORS abierto:** `app.use(cors())` acepta cualquier origen para facilitar pruebas.
-
----
-
-## 📋 Pendientes del Backend
-
-Ver: [PENDIENTES.md](../PENDIENTES.md)
-
-Los puntos clave son:
-- Segmentar rutas en archivos separados (`routes/`)
-- Agregar CRUD completo para marcas, categorías y ubicaciones
-- Agregar endpoint de búsqueda global y actualización parcial (`PATCH`)
+- **Transacciones en escritura:** Los endpoints `POST`, `PUT`, `PATCH` y `DELETE` de productos utilizan transacciones SQL (`beginTransaction()`, `commit()`, `rollback()`) para garantizar que la información en las tablas `productos` e `inventario` se mantenga consistente.
+- **Despliegue Serverless (Vercel):** `index.js` exporta la app de Express al final (`module.exports = app;`) para facilitar el despliegue como Serverless Function.
