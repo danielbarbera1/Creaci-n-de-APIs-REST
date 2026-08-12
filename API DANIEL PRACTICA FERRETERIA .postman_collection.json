@@ -1,0 +1,121 @@
+{
+  "info": {
+    "_postman_id": "077cd6d2-4465-4c6d-9cec-915161e7f5fe",
+    "name": "API DANIEL PRACTICA FERRETERIA ",
+    "description": "# API DANIEL PRACTICA FERRETERIA\n\n## Descripción\n\nEsta es una API REST para la gestión de productos de una ferretería. Permite realizar operaciones CRUD sobre los productos disponibles.\n\n## Nota Importante\n\n> **La base de datos de esta API se encuentra alojada en un hosting de dominio de mi profesor de programación senior, con el fin de hacer posible una práctica en producción.**\n\n## Base URL\n\n```\nhttps://creaci-n-de-ap-is-rest.vercel.app\n```\n\n## Endpoints\n\n### 🛒 Productos (`/api/productos`)\n\n| Método | Endpoint | Descripción |\n|--------|----------|-------------|\n| `GET` | `/api/productos` | Retorna todos los productos (soporta paginación: `?page=1&limit=10`) |\n| `GET` | `/api/productos/search?q=termino` | Búsqueda global de productos |\n| `GET` | `/api/productos/:id` | Obtener detalle completo de un producto por su ID |\n| `GET` | `/api/productos/categories/:slug` | Productos por categoría (soporta filtros: `brand`, `minPrice`, `maxPrice`, `search`, y ordenamiento) |\n| `POST` | `/api/productos` | Crear un nuevo producto (usa transacción para insertar en `productos` e `inventario`) |\n| `PUT` | `/api/productos/:id` | Actualizar completamente un producto |\n| `PATCH` | `/api/productos/:id` | Actualizar parcialmente un producto |\n| `DELETE` | `/api/productos/:id` | Eliminar un producto y su inventario |\n\n### 🏷️ Marcas (`/api/marcas`)\n\n| Método | Endpoint | Descripción |\n|--------|----------|-------------|\n| `GET` | `/api/marcas` | Listar todas las marcas |\n| `GET` | `/api/marcas/:id` | Obtener una marca por ID |\n| `POST` | `/api/marcas` | Crear una nueva marca |\n| `PUT` | `/api/marcas/:id` | Actualizar una marca |\n| `DELETE` | `/api/marcas/:id` | Eliminar una marca |\n\n### 📁 Categorías (`/api/categorias`)\n\n| Método | Endpoint | Descripción |\n|--------|----------|-------------|\n| `GET` | `/api/categorias` | Listar todas las categorías |\n| `GET` | `/api/categorias/:id` | Obtener una categoría por ID |\n| `POST` | `/api/categorias` | Crear una nueva categoría |\n| `PUT` | `/api/categorias/:id` | Actualizar una categoría |\n| `DELETE` | `/api/categorias/:id` | Eliminar una categoría |\n\n### 📍 Ubicaciones (`/api/ubicaciones`)\n\n| Método | Endpoint | Descripción |\n|--------|----------|-------------|\n| `GET` | `/api/ubicaciones` | Listar todas las ubicaciones |\n| `GET` | `/api/ubicaciones/:id` | Obtener una ubicación por ID |\n| `POST` | `/api/ubicaciones` | Crear una nueva ubicación |\n| `PUT` | `/api/ubicaciones/:id` | Actualizar una ubicación |\n| `DELETE` | `/api/ubicaciones/:id` | Eliminar una ubicación |\n\n## Estado\n\nEsta documentación se irá actualizando conforme se vayan agregando nuevas APIs y endpoints al proyecto.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "51487664",
+    "_collection_link": "https://go.postman.co/collection/51487664-077cd6d2-4465-4c6d-9cec-915161e7f5fe?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "PRODUCTOS",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://creaci-n-de-ap-is-rest.vercel.app/api/productos",
+          "protocol": "https",
+          "host": [
+            "creaci-n-de-ap-is-rest",
+            "vercel",
+            "app"
+          ],
+          "path": [
+            "api",
+            "productos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "PRODUCTOS:ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://creaci-n-de-ap-is-rest.vercel.app/api/productos/1",
+          "protocol": "https",
+          "host": [
+            "creaci-n-de-ap-is-rest",
+            "vercel",
+            "app"
+          ],
+          "path": [
+            "api",
+            "productos",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "PRODUCTOS POR CATEGORIAS",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://creaci-n-de-ap-is-rest.vercel.app/api/productos/categories/:slug",
+          "protocol": "https",
+          "host": [
+            "creaci-n-de-ap-is-rest",
+            "vercel",
+            "app"
+          ],
+          "path": [
+            "api",
+            "productos",
+            "categories",
+            ":slug"
+          ],
+          "variable": [
+            {
+              "key": "slug",
+              "value": ""
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "MARCAS",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://creaci-n-de-ap-is-rest.vercel.app/api/marcas",
+          "protocol": "https",
+          "host": [
+            "creaci-n-de-ap-is-rest",
+            "vercel",
+            "app"
+          ],
+          "path": [
+            "api",
+            "marcas"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "CATEGORIAS",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "UBICACIONES",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    }
+  ]
+}

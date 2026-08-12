@@ -87,6 +87,12 @@ npm start
 
 ---
 
+## 🧪 Pruebas con Postman
+
+En la raíz del proyecto encontrarás el archivo `API DANIEL PRACTICA FERRETERIA .postman_collection.json`. Puedes importarlo directamente en tu cliente de Postman (botón **Import**) para tener listos todos los endpoints de esta API, con ejemplos de variables, headers y body para probarlos fácilmente.
+
+---
+
 ## 📡 Endpoints — Referencia Completa
 
 ### Base URL
