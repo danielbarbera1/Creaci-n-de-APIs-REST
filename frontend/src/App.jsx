@@ -11,7 +11,9 @@ import Toast from './components/Toast';
 import { Loader2, AlertCircle, PackageX, Plus, RefreshCw } from 'lucide-react';
 
 function App() {
-  const api = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+  const api = import.meta.env.PROD
+    ? (import.meta.env.VITE_API_URL_PRODUCCION || 'https://creaci-n-de-ap-is-rest.vercel.app/api')
+    : (import.meta.env.VITE_API_URL || 'http://localhost:3000/api');
 
   // Core Data States
   const [categorias, setCategorias] = useState([]);
