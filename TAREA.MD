@@ -8,6 +8,8 @@ ACOMODAR
 - la modal de promociones hay que acomodarla ya que tiene que estar como la tiene productDetailmodal
 -acomodar cuando paso por el cursor que se vea mas claro en el modo claro ya que ahorita se ve osucro cuando paso el cursor 
 
+NOTA
+La base de datos de produccion ya tiene las nuevas tablas , solo falta poner en produccion el frontend con los cambios , aunque ya se hizo commit y push para este momento
 
 tablas nuevas en la base de datos  (listo)
 - usuarios
