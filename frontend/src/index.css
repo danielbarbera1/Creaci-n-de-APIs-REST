@@ -32,6 +32,24 @@
   html.dark .border-gray-200, html.dark .border-gray-100 {
     @apply border-slate-800;
   }
+  html.dark .bg-blue-50 {
+    @apply bg-blue-900/20 text-blue-400;
+  }
+  html.dark .text-blue-700, html.dark .text-blue-600 {
+    @apply text-blue-400;
+  }
+  html.dark .bg-blue-100 {
+    @apply bg-blue-900/50 text-blue-300;
+  }
+  html.dark .bg-purple-50 {
+    @apply bg-purple-900/20 text-purple-400;
+  }
+  html.dark .text-purple-700, html.dark .text-purple-600 {
+    @apply text-purple-400;
+  }
+  html.dark .bg-purple-100 {
+    @apply bg-purple-900/50 text-purple-300;
+  }
 }
 
 /* Scrollbar corporativo */

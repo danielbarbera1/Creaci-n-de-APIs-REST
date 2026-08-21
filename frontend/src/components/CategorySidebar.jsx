@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { Layers, ChevronDown, ChevronUp } from 'lucide-react';
+import { Layers, ChevronDown, ChevronUp, Tag } from 'lucide-react';
 
 export default function CategorySidebar({
   categorias,
   categoriaActiva,
   onSelectCategoria,
-  totalProductosCount
+  totalProductosCount,
+  activeView,
+  onChangeView,
+  totalPromociones = 0,
+  promocionesActivas = 0,
 }) {
   const [isOpenMobile, setIsOpenMobile] = useState(false);
 
@@ -16,17 +20,16 @@ export default function CategorySidebar({
 
   const SidebarContent = () => (
     <nav className="space-y-0.5">
-      {/* Todas */}
+      {/* Todas  */}
       <button
-        onClick={() => handleSelect(null)}
-        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${
-          categoriaActiva === null
+        onClick={() => { handleSelect(null); onChangeView('productos'); }}
+        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${categoriaActiva === null && activeView === 'productos'
             ? 'bg-blue-50 text-blue-700'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-        }`}
+            : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
+          }`}
       >
         <span>Todos los productos</span>
-        {categoriaActiva === null && (
+        {categoriaActiva === null && activeView === 'productos' && (
           <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
             {totalProductosCount}
           </span>
@@ -44,11 +47,10 @@ export default function CategorySidebar({
             <button
               key={slug}
               onClick={() => handleSelect(slug)}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left capitalize ${
-                isSelected
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left capitalize ${isSelected
                   ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-              }`}
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
+                }`}
             >
               <div className="flex items-center gap-2.5">
                 <span className={`w-2 h-2 rounded-full shrink-0 ${isSelected ? 'bg-blue-600' : 'bg-gray-300'}`} />
@@ -60,6 +62,34 @@ export default function CategorySidebar({
             </button>
           );
         })}
+      </div>
+
+      {/* ── Sección Promociones ── */}
+      <div className="pt-3 mt-3 border-t border-gray-100">
+        <div className="flex items-center gap-2 px-1 pb-2">
+          <Tag className="w-4 h-4 text-gray-400" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Gestión</span>
+        </div>
+
+        <button
+          onClick={() => { onChangeView('promociones'); setIsOpenMobile(false); }}
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${activeView === 'promociones'
+              ? 'bg-purple-50 text-purple-700'
+              : 'text-gray-600 hover:bg-gray-50 hover:text-purple-600 dark:text-gray-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
+            }`}
+        >
+          <div className="flex items-center gap-2.5">
+            <span className={`w-2 h-2 rounded-full shrink-0 ${activeView === 'promociones' ? 'bg-purple-600' : 'bg-gray-300'}`} />
+            <span>Promociones</span>
+          </div>
+          <div className="flex items-center gap-1">
+            {promocionesActivas > 0 && (
+              <span className="text-xs font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full">
+                {promocionesActivas} activas
+              </span>
+            )}
+          </div>
+        </button>
       </div>
     </nav>
   );

@@ -7,6 +7,12 @@ const productosRouter = require('./routes/productos');
 const marcasRouter = require('./routes/marcas');
 const categoriasRouter = require('./routes/categorias');
 const ubicacionesRouter = require('./routes/ubicaciones');
+const usuariosRouter = require('./routes/usuarios');
+const direccionesRouter = require('./routes/direcciones');
+const metodosPagoRouter = require('./routes/metodos-pago');
+const pedidosRouter = require('./routes/pedidos');
+const promocionesRouter = require('./routes/promociones');
+const descuentosRouter = require('./routes/descuentos');
 
 // Importar middleware centralizado de manejo de errores
 const errorHandler = require('./middlewares/errorHandler');
@@ -22,6 +28,12 @@ app.use('/api/productos', productosRouter);
 app.use('/api/marcas', marcasRouter);
 app.use('/api/categorias', categoriasRouter);
 app.use('/api/ubicaciones', ubicacionesRouter);
+app.use('/api/usuarios', usuariosRouter);
+app.use('/api/direcciones', direccionesRouter);
+app.use('/api/metodos-pago', metodosPagoRouter);
+app.use('/api/pedidos', pedidosRouter);
+app.use('/api/promociones', promocionesRouter);
+app.use('/api/descuentos', descuentosRouter);
 
 // Ruta raíz de prueba/bienvenida
 app.get('/', (req, res) => {
@@ -32,7 +44,13 @@ app.get('/', (req, res) => {
       busqueda_global: '/api/productos/search?q=taladro',
       marcas: '/api/marcas',
       categorias: '/api/categorias',
-      ubicaciones: '/api/ubicaciones'
+      ubicaciones: '/api/ubicaciones',
+      usuarios: '/api/usuarios',
+      direcciones: '/api/direcciones',
+      'metodos-pago': '/api/metodos-pago',
+      pedidos: '/api/pedidos',
+      promociones: '/api/promociones',
+      descuentos: '/api/descuentos'
     }
   });
 });

@@ -8,6 +8,7 @@ import ProductFormModal from './components/ProductFormModal';
 import ConfirmModal from './components/ConfirmModal';
 import Pagination from './components/Pagination';
 import Toast from './components/Toast';
+import PromotionsSection from './components/PromotionsSection';
 import { Loader2, AlertCircle, PackageX, Plus, RefreshCw } from 'lucide-react';
 
 function App() {
@@ -19,7 +20,11 @@ function App() {
   const [categorias, setCategorias] = useState([]);
   const [marcas, setMarcas] = useState([]);
   const [productos, setProductos] = useState([]);
-  
+  const [promocionesActivas, setPromocionesActivas] = useState([]); // Nuevo estado para promos
+
+  // View States
+  const [activeView, setActiveView] = useState('productos'); // 'productos' | 'promociones'
+
   // Active Filter / Navigation States
   const [categoriaActiva, setCategoriaActiva] = useState(null); // null = todas
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,6 +74,31 @@ function App() {
     setToast({ message, type });
   };
 
+  // 0. Cargar Promociones Activas para calcular descuentos
+  const fetchPromocionesActivas = useCallback(() => {
+    fetch(`${api}/promociones`)
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        if (Array.isArray(data)) {
+          // Filtramos solo las que están activas validando la fecha de expiración
+          const ahora = new Date();
+          const validas = data.filter(p => {
+            if (p.estado !== 'activa') return false;
+            if (p.fecha_inicio && new Date(p.fecha_inicio) > ahora) return false;
+            if (p.fecha_fin && new Date(p.fecha_fin) < ahora) return false;
+            return true;
+          });
+          setPromocionesActivas(validas);
+        }
+      })
+      .catch(err => console.error('Error cargando promociones:', err));
+  }, [api]);
+
+  useEffect(() => {
+    fetchPromocionesActivas();
+  }, [fetchPromocionesActivas]);
+
+
   // 1. Cargar lista de categorías y marcas al iniciar
   useEffect(() => {
     // Categorías
@@ -87,7 +117,7 @@ function App() {
             .then(d => {
               if (d.availableCategories) setCategorias(d.availableCategories);
             })
-            .catch(() => {});
+            .catch(() => { });
         }
       })
       .catch(err => {
@@ -107,6 +137,7 @@ function App() {
 
   // 2. Función principal para fetch de productos (por categoría o global)
   const fetchProductos = useCallback(() => {
+    if (activeView !== 'productos') return;
     setLoading(true);
     setError(null);
 
@@ -157,7 +188,7 @@ function App() {
         setError('No se pudo conectar con la API de backend. Por favor verifica que el servidor esté activo.');
         setLoading(false);
       });
-  }, [api, categoriaActiva, page, selectedBrand, minPrice, maxPrice, searchQuery, sortBy, sortOrder]);
+  }, [api, categoriaActiva, page, selectedBrand, minPrice, maxPrice, searchQuery, sortBy, sortOrder, activeView]);
 
   useEffect(() => {
     fetchProductos();
@@ -166,6 +197,7 @@ function App() {
   // Reset de página al cambiar filtros o categorías
   const handleSelectCategoria = (slug) => {
     setCategoriaActiva(slug);
+    setActiveView('productos'); // Cambiar a vista productos al seleccionar categoria
     setPage(1);
   };
 
@@ -311,18 +343,15 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans selection:bg-blue-200 selection:text-blue-900">
-      
+
       {/* Toast Notification */}
       <Toast toast={toast} onClose={() => setToast(null)} />
 
       {/* Header */}
       <Header
         searchQuery={searchQuery}
-        onSearchChange={(val) => { setSearchQuery(val); setPage(1); }}
-        onOpenCreateModal={handleOpenCreateModal}
+        onSearchChange={(val) => { setSearchQuery(val); setPage(1); setActiveView('productos'); }}
         totalProducts={totalProductsCount}
-        onRefresh={fetchProductos}
-        loading={loading}
         isDarkMode={isDarkMode}
         toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
       />
@@ -337,107 +366,136 @@ function App() {
             categoriaActiva={categoriaActiva}
             onSelectCategoria={handleSelectCategoria}
             totalProductosCount={totalProductsCount}
+            activeView={activeView}
+            onChangeView={(view) => { setActiveView(view); setCategoriaActiva(null); }}
+            promocionesActivas={promocionesActivas.length}
           />
 
           {/* Panel Principal */}
-          <section className="flex-1 min-w-0">
-            
-            {/* Header del Panel */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 tracking-tight capitalize m-0">
-                  {categoriaActiva ? `Categoría: ${categoriaActiva}` : 'Catálogo Completo'}
-                </h2>
-                <p className="text-xs text-gray-500 mt-1">
-                  Mostrando {listaFinalProductos.length} producto(s)
-                  {categoriaActiva ? ` en esta categoría` : ''}
-                </p>
-              </div>
-            </div>
+          {activeView === 'productos' ? (
+            <section className="flex-1 min-w-0">
 
-            {/* Filtros Visuales y Ordenamiento */}
-            <FilterBar
-              marcas={marcas}
-              selectedBrand={selectedBrand}
-              onBrandChange={(val) => { setSelectedBrand(val); setPage(1); }}
-              minPrice={minPrice}
-              onMinPriceChange={(val) => { setMinPrice(val); setPage(1); }}
-              maxPrice={maxPrice}
-              onMaxPriceChange={(val) => { setMaxPrice(val); setPage(1); }}
-              sortBy={sortBy}
-              onSortByChange={(val) => setSortBy(val)}
-              sortOrder={sortOrder}
-              onSortOrderChange={(val) => setSortOrder(val)}
-              onResetFilters={handleResetFilters}
-            />
-
-            {/* Error Banner */}
-            {error && (
-              <div className="p-4 mb-5 bg-red-50 border border-red-200 rounded-xl text-red-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-sm shadow-sm">
-                <div className="flex items-center gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-                  <span className="font-medium">{error}</span>
+              {/* Header del Panel */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 tracking-tight capitalize m-0">
+                    {categoriaActiva ? `Categoría: ${categoriaActiva}` : 'Catálogo Completo'}
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Mostrando {listaFinalProductos.length} producto(s)
+                    {categoriaActiva ? ` en esta categoría` : ''}
+                  </p>
                 </div>
-                <button
-                  onClick={fetchProductos}
-                  className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  Reintentar
-                </button>
-              </div>
-            )}
-
-            {/* Grid de Productos */}
-            {loading ? (
-              <div className="py-24 flex flex-col items-center justify-center gap-3 text-gray-400">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                <p className="text-sm font-medium">Cargando productos...</p>
-              </div>
-            ) : listaFinalProductos.length === 0 ? (
-              <div className="py-16 px-4 bg-white border border-gray-200 rounded-2xl text-center flex flex-col items-center justify-center gap-3 shadow-sm">
-                <div className="p-4 bg-gray-50 rounded-full text-gray-400">
-                  <PackageX className="w-8 h-8" />
+                <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                  <button
+                    onClick={() => { fetchProductos(); fetchPromocionesActivas(); }}
+                    disabled={loading}
+                    title="Actualizar"
+                    className="p-2 text-gray-600 bg-white border border-gray-200 shadow-sm hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors flex items-center justify-center shrink-0"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  </button>
+                  <button
+                    onClick={handleOpenCreateModal}
+                    className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 active:bg-blue-900 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Nuevo Producto</span>
+                  </button>
                 </div>
-                <h3 className="text-sm font-bold text-gray-900 m-0">No se encontraron productos</h3>
-                <p className="text-xs text-gray-500 max-w-sm">
-                  Intenta cambiar el término de búsqueda, ajustar los filtros o registrar un nuevo producto.
-                </p>
-                <button
-                  onClick={handleOpenCreateModal}
-                  className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Crear Primer Producto</span>
-                </button>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {listaFinalProductos.map((prod) => {
-                  const id = prod.id || prod.id_producto;
-                  return (
-                    <ProductCard
-                      key={id}
-                      producto={prod}
-                      onViewDetail={(pid) => setDetailProductId(pid)}
-                      onEdit={handleOpenEditModal}
-                      onDelete={handleOpenDeleteModal}
-                    />
-                  );
-                })}
-              </div>
-            )}
 
-            {/* Paginación */}
-            {categoriaActiva && (
-              <Pagination
-                page={page}
-                totalPages={totalPages}
-                onPageChange={(p) => setPage(p)}
+              {/* Filtros Visuales y Ordenamiento */}
+              <FilterBar
+                marcas={marcas}
+                selectedBrand={selectedBrand}
+                onBrandChange={(val) => { setSelectedBrand(val); setPage(1); }}
+                minPrice={minPrice}
+                onMinPriceChange={(val) => { setMinPrice(val); setPage(1); }}
+                maxPrice={maxPrice}
+                onMaxPriceChange={(val) => { setMaxPrice(val); setPage(1); }}
+                sortBy={sortBy}
+                onSortByChange={(val) => setSortBy(val)}
+                sortOrder={sortOrder}
+                onSortOrderChange={(val) => setSortOrder(val)}
+                onResetFilters={handleResetFilters}
               />
-            )}
 
-          </section>
+              {/* Error Banner */}
+              {error && (
+                <div className="p-4 mb-5 bg-red-50 border border-red-200 rounded-xl text-red-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-sm shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                    <span className="font-medium">{error}</span>
+                  </div>
+                  <button
+                    onClick={fetchProductos}
+                    className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    Reintentar
+                  </button>
+                </div>
+              )}
+
+              {/* Grid de Productos */}
+              {loading ? (
+                <div className="py-24 flex flex-col items-center justify-center gap-3 text-gray-400">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                  <p className="text-sm font-medium">Cargando productos...</p>
+                </div>
+              ) : listaFinalProductos.length === 0 ? (
+                <div className="py-16 px-4 bg-white border border-gray-200 rounded-2xl text-center flex flex-col items-center justify-center gap-3 shadow-sm">
+                  <div className="p-4 bg-gray-50 rounded-full text-gray-400">
+                    <PackageX className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-sm font-bold text-gray-900 m-0">No se encontraron productos</h3>
+                  <p className="text-xs text-gray-500 max-w-sm">
+                    Intenta cambiar el término de búsqueda, ajustar los filtros o registrar un nuevo producto.
+                  </p>
+                  <button
+                    onClick={handleOpenCreateModal}
+                    className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Crear Primer Producto</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {listaFinalProductos.map((prod) => {
+                    const id = prod.id || prod.id_producto;
+                    return (
+                      <ProductCard
+                        key={id}
+                        producto={prod}
+                        promocionesActivas={promocionesActivas}
+                        onViewDetail={(pid) => setDetailProductId(pid)}
+                        onEdit={handleOpenEditModal}
+                        onDelete={handleOpenDeleteModal}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Paginación */}
+              {categoriaActiva && (
+                <Pagination
+                  page={page}
+                  totalPages={totalPages}
+                  onPageChange={(p) => setPage(p)}
+                />
+              )}
+
+            </section>
+          ) : (
+            <PromotionsSection
+              api={api}
+              onShowToast={showToast}
+              onUpdatePromotions={fetchPromocionesActivas}
+            />
+          )}
 
         </div>
       </main>

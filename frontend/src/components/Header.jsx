@@ -1,13 +1,10 @@
 import React from 'react';
-import { Plus, Search, RefreshCw, Moon, Sun } from 'lucide-react';
+import { Search, Moon, Sun } from 'lucide-react';
 
 export default function Header({
   searchQuery,
   onSearchChange,
-  onOpenCreateModal,
   totalProducts,
-  onRefresh,
-  loading,
   isDarkMode,
   toggleDarkMode
 }) {
@@ -46,7 +43,7 @@ export default function Header({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 ">
           <button
             onClick={toggleDarkMode}
             title={isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
@@ -54,23 +51,7 @@ export default function Header({
           >
             {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
-          <button
-            onClick={onRefresh}
-            disabled={loading}
-            title="Actualizar"
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-          <button
-            onClick={onOpenCreateModal}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-700 hover:bg-blue-800 active:bg-blue-900 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nuevo</span>
-          </button>
         </div>
-
       </div>
     </header>
   );
