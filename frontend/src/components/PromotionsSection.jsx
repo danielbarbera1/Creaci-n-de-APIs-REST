@@ -7,7 +7,14 @@ import ConfirmModal from './ConfirmModal';
 
 function getEstadoReal(promo) {
   const ahora = new Date();
-  const fin = promo.fecha_fin ? new Date(promo.fecha_fin) : null;
+
+  let fin = null;
+  if (promo.fecha_fin) {
+    fin = new Date(promo.fecha_fin);
+    // Si es fecha sin hora ("YYYY-MM-DD"), sumar 1 día para incluir todo el día
+    if (promo.fecha_fin.length === 10) fin.setDate(fin.getDate() + 1);
+  }
+
   const inicio = promo.fecha_inicio ? new Date(promo.fecha_inicio) : null;
 
   if (promo.estado === 'inactiva') return 'inactiva';

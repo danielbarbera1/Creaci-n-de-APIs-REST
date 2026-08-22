@@ -67,12 +67,21 @@ router.post('/', async (req, res, next) => {
       cantidad_maxima_uso, limite_usos_totales, fecha_inicio, fecha_fin, aplica_a, estado
     } = req.body;
 
-    if (!codigo || !nombre || !tipo || valor === undefined || !fecha_inicio || !fecha_fin) {
-      return res.status(400).json({ error: 'Los campos codigo, nombre, tipo, valor, fecha_inicio y fecha_fin son obligatorios' });
+    if (!codigo || !nombre || !tipo || !fecha_inicio || !fecha_fin) {
+      return res.status(400).json({ error: 'Los campos codigo, nombre, tipo, fecha_inicio y fecha_fin son obligatorios' });
     }
 
     if (!TIPOS_VALIDOS.includes(tipo)) {
       return res.status(400).json({ error: `El tipo debe ser uno de: ${TIPOS_VALIDOS.join(', ')}` });
+    }
+
+    const tiposConValor = ['porcentaje', 'monto_fijo'];
+    const valorFinal = tiposConValor.includes(tipo)
+      ? (valor !== undefined && !isNaN(Number(valor)) ? Number(valor) : null)
+      : 0;
+
+    if (tiposConValor.includes(tipo) && valorFinal === null) {
+      return res.status(400).json({ error: 'El campo valor es obligatorio para el tipo seleccionado' });
     }
 
     const [result] = await pool.execute(
@@ -83,7 +92,7 @@ router.post('/', async (req, res, next) => {
         nombre,
         descripcion || null,
         tipo,
-        valor,
+        valorFinal,
         monto_minimo || 0,
         cantidad_maxima_uso || 1,
         limite_usos_totales || null,
@@ -101,7 +110,7 @@ router.post('/', async (req, res, next) => {
         codigo: codigo.toUpperCase(),
         nombre,
         tipo,
-        valor,
+        valor: valorFinal,
         fecha_inicio,
         fecha_fin,
         estado: ESTADOS_VALIDOS.includes(estado) ? estado : 'activa'

@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { X, Tag, Calendar, Percent, DollarSign, Truck, Gift, AlertCircle } from 'lucide-react';
 
 const TIPOS = [
-  { value: 'porcentaje',      label: '% Porcentaje',     icon: Percent },
-  { value: 'monto_fijo',     label: '$ Monto fijo',     icon: DollarSign },
-  { value: 'envio_gratis',   label: '🚚 Envío gratis',  icon: Truck },
+  { value: 'porcentaje', label: '% Porcentaje', icon: Percent },
+  { value: 'monto_fijo', label: '$ Monto fijo', icon: DollarSign },
+  { value: 'envio_gratis', label: '🚚 Envío gratis', icon: Truck },
   { value: 'producto_gratis', label: '🎁 Producto gratis', icon: Gift },
 ];
 
 const APLICA_A = [
-  { value: 'todos',      label: 'Todos los productos' },
+  { value: 'todos', label: 'Todos los productos' },
   { value: 'categorias', label: 'Categorías específicas' },
-  { value: 'productos',  label: 'Productos específicos' },
+  { value: 'productos', label: 'Productos específicos' },
 ];
 
 const today = () => new Date().toISOString().split('T')[0];
@@ -82,9 +83,11 @@ export default function PromotionFormModal({ isOpen, onClose, onSubmit, initialD
     if (!form.codigo.trim()) e.codigo = 'El código es obligatorio';
     if (!form.nombre.trim()) e.nombre = 'El nombre es obligatorio';
     if (!form.tipo) e.tipo = 'Selecciona un tipo';
-    if (form.valor === '' || isNaN(Number(form.valor))) e.valor = 'El valor es obligatorio';
-    if (form.tipo === 'porcentaje' && (Number(form.valor) < 0 || Number(form.valor) > 100)) {
-      e.valor = 'El porcentaje debe estar entre 0 y 100';
+    if (showValorField) {
+      if (form.valor === '' || isNaN(Number(form.valor))) e.valor = 'El valor es obligatorio';
+      if (form.tipo === 'porcentaje' && (Number(form.valor) < 0 || Number(form.valor) > 100)) {
+        e.valor = 'El porcentaje debe estar entre 0 y 100';
+      }
     }
     if (!form.fecha_inicio) e.fecha_inicio = 'Fecha de inicio obligatoria';
     if (!form.fecha_fin) e.fecha_fin = 'Fecha de fin obligatoria';
@@ -104,7 +107,7 @@ export default function PromotionFormModal({ isOpen, onClose, onSubmit, initialD
       await onSubmit({
         ...form,
         codigo: form.codigo.toUpperCase().trim(),
-        valor: Number(form.valor),
+        valor: showValorField ? Number(form.valor) : 0,
         monto_minimo: form.monto_minimo !== '' ? Number(form.monto_minimo) : 0,
         cantidad_maxima_uso: Number(form.cantidad_maxima_uso) || 1,
         limite_usos_totales: form.limite_usos_totales !== '' ? Number(form.limite_usos_totales) : null,
@@ -121,7 +124,7 @@ export default function PromotionFormModal({ isOpen, onClose, onSubmit, initialD
 
   const showValorField = form.tipo === 'porcentaje' || form.tipo === 'monto_fijo';
 
-  return (
+  return ReactDOM.createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
       onClick={onClose}
@@ -271,6 +274,39 @@ export default function PromotionFormModal({ isOpen, onClose, onSubmit, initialD
             </div>
           </div>
 
+          {/* Límite de usos */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Máx. usos totales
+                <span className="ml-1 text-gray-400 font-normal">(vacío = sin límite)</span>
+              </label>
+              <input
+                type="number"
+                value={form.limite_usos_totales}
+                onChange={e => set('limite_usos_totales', e.target.value)}
+                min={1}
+                step={1}
+                placeholder="∞ Sin límite"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Máx. usos por usuario
+              </label>
+              <input
+                type="number"
+                value={form.cantidad_maxima_uso}
+                onChange={e => set('cantidad_maxima_uso', e.target.value)}
+                min={1}
+                step={1}
+                placeholder="1"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
+              />
+            </div>
+          </div>
+
           {/* Fechas */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -309,13 +345,12 @@ export default function PromotionFormModal({ isOpen, onClose, onSubmit, initialD
                   key={s}
                   type="button"
                   onClick={() => set('estado', s)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium border transition capitalize ${
-                    form.estado === s
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium border transition capitalize ${form.estado === s
                       ? s === 'activa'
                         ? 'bg-emerald-50 border-emerald-400 text-emerald-700'
                         : 'bg-gray-100 border-gray-400 text-gray-700'
                       : 'border-gray-200 text-gray-500 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   {s === 'activa' ? '🟢 Activa' : '⚫ Inactiva'}
                 </button>
@@ -340,12 +375,13 @@ export default function PromotionFormModal({ isOpen, onClose, onSubmit, initialD
             className="flex items-center gap-2 px-5 py-2 bg-purple-700 hover:bg-purple-800 active:bg-purple-900 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm disabled:opacity-60"
           >
             {saving ? (
-              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
             ) : <Tag className="w-4 h-4" />}
             {isEdit ? 'Guardar cambios' : 'Crear promoción'}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

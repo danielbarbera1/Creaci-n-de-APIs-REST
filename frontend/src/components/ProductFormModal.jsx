@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { X, Plus, Edit3, Loader2, Save, AlertCircle } from 'lucide-react';
 
 export default function ProductFormModal({
@@ -171,10 +172,10 @@ export default function ProductFormModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-[2px] animate-fade-in" onClick={onClose}>
+  return ReactDOM.createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-black/30 backdrop-blur-[2px] animate-fade-in p-4" onClick={onClose}>
       <div
-        className="bg-white border border-gray-200 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-slide-up"
+        className="bg-white border border-gray-200 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col my-auto animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -349,6 +350,7 @@ export default function ProductFormModal({
         </form>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

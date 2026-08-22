@@ -23,9 +23,10 @@ export default function CategorySidebar({
       {/* Todas  */}
       <button
         onClick={() => { handleSelect(null); onChangeView('productos'); }}
-        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${categoriaActiva === null && activeView === 'productos'
-            ? 'bg-blue-50 text-blue-700'
-            : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
+        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left ${
+            categoriaActiva === null && activeView === 'productos'
+            ? 'bg-blue-50 text-blue-700 font-semibold'
+            : 'text-gray-500 hover:bg-blue-50 hover:text-blue-600'
           }`}
       >
         <span>Todos los productos</span>
@@ -47,9 +48,9 @@ export default function CategorySidebar({
             <button
               key={slug}
               onClick={() => handleSelect(slug)}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left capitalize ${isSelected
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left capitalize ${isSelected
+                  ? 'bg-blue-50 text-blue-700 font-semibold'
+                  : 'text-gray-500 hover:bg-blue-50 hover:text-blue-600'
                 }`}
             >
               <div className="flex items-center gap-2.5">
@@ -73,9 +74,9 @@ export default function CategorySidebar({
 
         <button
           onClick={() => { onChangeView('promociones'); setIsOpenMobile(false); }}
-          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${activeView === 'promociones'
-              ? 'bg-purple-50 text-purple-700'
-              : 'text-gray-600 hover:bg-gray-50 hover:text-purple-600 dark:text-gray-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left ${activeView === 'promociones'
+              ? 'bg-purple-50 text-purple-700 font-semibold'
+              : 'text-gray-500 hover:bg-purple-50 hover:text-purple-600'
             }`}
         >
           <div className="flex items-center gap-2.5">

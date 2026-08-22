@@ -80,12 +80,21 @@ function App() {
       .then(res => res.ok ? res.json() : [])
       .then(data => {
         if (Array.isArray(data)) {
-          // Filtramos solo las que están activas validando la fecha de expiración
+          // Filtramos usando la misma lógica que getEstadoReal en PromotionsSection
           const ahora = new Date();
           const validas = data.filter(p => {
             if (p.estado !== 'activa') return false;
-            if (p.fecha_inicio && new Date(p.fecha_inicio) > ahora) return false;
-            if (p.fecha_fin && new Date(p.fecha_fin) < ahora) return false;
+            // Comparar fin: si la fecha viene como "YYYY-MM-DD", se trata como fin del día
+            if (p.fecha_fin) {
+              const fin = new Date(p.fecha_fin);
+              // Si es fecha sin hora, sumar 1 día para incluir el día completo
+              if (p.fecha_fin.length === 10) fin.setDate(fin.getDate() + 1);
+              if (fin < ahora) return false;
+            }
+            if (p.fecha_inicio) {
+              const inicio = new Date(p.fecha_inicio);
+              if (inicio > ahora) return false;
+            }
             return true;
           });
           setPromocionesActivas(validas);
